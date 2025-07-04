@@ -408,7 +408,7 @@ const deployedContracts = {
   },
   31337: {
     YourContract: {
-      address: "0xE75e556d685D7428C8242eaF331A5eF80FCACa1f",
+      address: "0xe6F314143AE46b5b0594Ae7C88e6A39D36964bb7",
       abi: [
         {
           inputs: [],
@@ -417,19 +417,64 @@ const deployedContracts = {
         },
         {
           anonymous: false,
-          inputs: [],
+          inputs: [
+            {
+              indexed: true,
+              internalType: "uint256",
+              name: "gameId",
+              type: "uint256",
+            },
+          ],
           name: "GameClosed",
           type: "event",
         },
         {
           anonymous: false,
-          inputs: [],
+          inputs: [
+            {
+              indexed: true,
+              internalType: "uint256",
+              name: "gameId",
+              type: "uint256",
+            },
+            {
+              indexed: true,
+              internalType: "address",
+              name: "gamemaster",
+              type: "address",
+            },
+            {
+              indexed: false,
+              internalType: "uint256",
+              name: "stakeAmount",
+              type: "uint256",
+            },
+          ],
+          name: "GameCreated",
+          type: "event",
+        },
+        {
+          anonymous: false,
+          inputs: [
+            {
+              indexed: true,
+              internalType: "uint256",
+              name: "gameId",
+              type: "uint256",
+            },
+          ],
           name: "GameOpened",
           type: "event",
         },
         {
           anonymous: false,
           inputs: [
+            {
+              indexed: true,
+              internalType: "uint256",
+              name: "gameId",
+              type: "uint256",
+            },
             {
               indexed: true,
               internalType: "bytes32",
@@ -451,6 +496,12 @@ const deployedContracts = {
           inputs: [
             {
               indexed: true,
+              internalType: "uint256",
+              name: "gameId",
+              type: "uint256",
+            },
+            {
+              indexed: true,
               internalType: "bytes32",
               name: "reveal",
               type: "bytes32",
@@ -468,6 +519,12 @@ const deployedContracts = {
         {
           anonymous: false,
           inputs: [
+            {
+              indexed: true,
+              internalType: "uint256",
+              name: "gameId",
+              type: "uint256",
+            },
             {
               indexed: false,
               internalType: "address[]",
@@ -489,6 +546,12 @@ const deployedContracts = {
           inputs: [
             {
               indexed: true,
+              internalType: "uint256",
+              name: "gameId",
+              type: "uint256",
+            },
+            {
+              indexed: true,
               internalType: "address",
               name: "player",
               type: "address",
@@ -498,53 +561,25 @@ const deployedContracts = {
           type: "event",
         },
         {
-          inputs: [],
-          name: "GAMEMASTER",
-          outputs: [
-            {
-              internalType: "address",
-              name: "",
-              type: "address",
-            },
-          ],
-          stateMutability: "view",
-          type: "function",
-        },
-        {
-          inputs: [],
-          name: "STAKE_AMOUNT",
-          outputs: [
+          inputs: [
             {
               internalType: "uint256",
-              name: "",
+              name: "gameId",
               type: "uint256",
             },
           ],
-          stateMutability: "view",
-          type: "function",
-        },
-        {
-          inputs: [],
           name: "closeGame",
           outputs: [],
           stateMutability: "nonpayable",
           type: "function",
         },
         {
-          inputs: [],
-          name: "commitBlockNumber",
-          outputs: [
+          inputs: [
             {
               internalType: "uint256",
-              name: "",
+              name: "gameId",
               type: "uint256",
             },
-          ],
-          stateMutability: "view",
-          type: "function",
-        },
-        {
-          inputs: [
             {
               internalType: "bytes32",
               name: "_hash",
@@ -557,20 +592,116 @@ const deployedContracts = {
           type: "function",
         },
         {
-          inputs: [],
-          name: "committedHash",
+          inputs: [
+            {
+              internalType: "address",
+              name: "_gamemaster",
+              type: "address",
+            },
+            {
+              internalType: "uint256",
+              name: "_stakeAmount",
+              type: "uint256",
+            },
+          ],
+          name: "createGame",
           outputs: [
             {
-              internalType: "bytes32",
+              internalType: "uint256",
               name: "",
+              type: "uint256",
+            },
+          ],
+          stateMutability: "nonpayable",
+          type: "function",
+        },
+        {
+          inputs: [
+            {
+              internalType: "uint256",
+              name: "",
+              type: "uint256",
+            },
+          ],
+          name: "games",
+          outputs: [
+            {
+              internalType: "address",
+              name: "gamemaster",
+              type: "address",
+            },
+            {
+              internalType: "uint256",
+              name: "stakeAmount",
+              type: "uint256",
+            },
+            {
+              internalType: "bool",
+              name: "open",
+              type: "bool",
+            },
+            {
+              internalType: "bool",
+              name: "hasOpened",
+              type: "bool",
+            },
+            {
+              internalType: "bool",
+              name: "hasClosed",
+              type: "bool",
+            },
+            {
+              internalType: "bytes32",
+              name: "committedHash",
               type: "bytes32",
+            },
+            {
+              internalType: "uint256",
+              name: "commitBlockNumber",
+              type: "uint256",
+            },
+            {
+              internalType: "bytes32",
+              name: "revealValue",
+              type: "bytes32",
+            },
+            {
+              internalType: "bytes32",
+              name: "randomHash",
+              type: "bytes32",
+            },
+            {
+              internalType: "bool",
+              name: "hasCommitted",
+              type: "bool",
+            },
+            {
+              internalType: "bool",
+              name: "hasRevealed",
+              type: "bool",
+            },
+            {
+              internalType: "uint256",
+              name: "payoutAmount",
+              type: "uint256",
+            },
+            {
+              internalType: "bool",
+              name: "hasPaidOut",
+              type: "bool",
             },
           ],
           stateMutability: "view",
           type: "function",
         },
         {
-          inputs: [],
+          inputs: [
+            {
+              internalType: "uint256",
+              name: "gameId",
+              type: "uint256",
+            },
+          ],
           name: "getCommitRevealState",
           outputs: [
             {
@@ -621,7 +752,86 @@ const deployedContracts = {
           type: "function",
         },
         {
-          inputs: [],
+          inputs: [
+            {
+              internalType: "uint256",
+              name: "gameId",
+              type: "uint256",
+            },
+          ],
+          name: "getGameInfo",
+          outputs: [
+            {
+              internalType: "address",
+              name: "gamemaster",
+              type: "address",
+            },
+            {
+              internalType: "uint256",
+              name: "stakeAmount",
+              type: "uint256",
+            },
+            {
+              internalType: "bool",
+              name: "open",
+              type: "bool",
+            },
+            {
+              internalType: "uint256",
+              name: "playerCount",
+              type: "uint256",
+            },
+            {
+              internalType: "bool",
+              name: "hasOpened",
+              type: "bool",
+            },
+            {
+              internalType: "bool",
+              name: "hasClosed",
+              type: "bool",
+            },
+          ],
+          stateMutability: "view",
+          type: "function",
+        },
+        {
+          inputs: [
+            {
+              internalType: "uint256",
+              name: "gameId",
+              type: "uint256",
+            },
+          ],
+          name: "getPayoutInfo",
+          outputs: [
+            {
+              internalType: "address[]",
+              name: "winners",
+              type: "address[]",
+            },
+            {
+              internalType: "uint256",
+              name: "payoutAmount",
+              type: "uint256",
+            },
+            {
+              internalType: "bool",
+              name: "hasPaidOut",
+              type: "bool",
+            },
+          ],
+          stateMutability: "view",
+          type: "function",
+        },
+        {
+          inputs: [
+            {
+              internalType: "uint256",
+              name: "gameId",
+              type: "uint256",
+            },
+          ],
           name: "getPlayerCount",
           outputs: [
             {
@@ -634,7 +844,13 @@ const deployedContracts = {
           type: "function",
         },
         {
-          inputs: [],
+          inputs: [
+            {
+              internalType: "uint256",
+              name: "gameId",
+              type: "uint256",
+            },
+          ],
           name: "getPlayers",
           outputs: [
             {
@@ -647,8 +863,19 @@ const deployedContracts = {
           type: "function",
         },
         {
-          inputs: [],
-          name: "hasCommitted",
+          inputs: [
+            {
+              internalType: "uint256",
+              name: "gameId",
+              type: "uint256",
+            },
+            {
+              internalType: "address",
+              name: "player",
+              type: "address",
+            },
+          ],
+          name: "hasPlayerJoined",
           outputs: [
             {
               internalType: "bool",
@@ -662,37 +889,11 @@ const deployedContracts = {
         {
           inputs: [
             {
-              internalType: "address",
-              name: "",
-              type: "address",
+              internalType: "uint256",
+              name: "gameId",
+              type: "uint256",
             },
           ],
-          name: "hasJoined",
-          outputs: [
-            {
-              internalType: "bool",
-              name: "",
-              type: "bool",
-            },
-          ],
-          stateMutability: "view",
-          type: "function",
-        },
-        {
-          inputs: [],
-          name: "hasRevealed",
-          outputs: [
-            {
-              internalType: "bool",
-              name: "",
-              type: "bool",
-            },
-          ],
-          stateMutability: "view",
-          type: "function",
-        },
-        {
-          inputs: [],
           name: "joinGame",
           outputs: [],
           stateMutability: "payable",
@@ -700,19 +901,25 @@ const deployedContracts = {
         },
         {
           inputs: [],
-          name: "open",
+          name: "nextGameId",
           outputs: [
             {
-              internalType: "bool",
+              internalType: "uint256",
               name: "",
-              type: "bool",
+              type: "uint256",
             },
           ],
           stateMutability: "view",
           type: "function",
         },
         {
-          inputs: [],
+          inputs: [
+            {
+              internalType: "uint256",
+              name: "gameId",
+              type: "uint256",
+            },
+          ],
           name: "openGame",
           outputs: [],
           stateMutability: "nonpayable",
@@ -720,6 +927,11 @@ const deployedContracts = {
         },
         {
           inputs: [
+            {
+              internalType: "uint256",
+              name: "gameId",
+              type: "uint256",
+            },
             {
               internalType: "address[]",
               name: "_winners",
@@ -735,50 +947,9 @@ const deployedContracts = {
           inputs: [
             {
               internalType: "uint256",
-              name: "",
+              name: "gameId",
               type: "uint256",
             },
-          ],
-          name: "players",
-          outputs: [
-            {
-              internalType: "address",
-              name: "",
-              type: "address",
-            },
-          ],
-          stateMutability: "view",
-          type: "function",
-        },
-        {
-          inputs: [],
-          name: "randomHash",
-          outputs: [
-            {
-              internalType: "bytes32",
-              name: "",
-              type: "bytes32",
-            },
-          ],
-          stateMutability: "view",
-          type: "function",
-        },
-        {
-          inputs: [],
-          name: "resetCommitReveal",
-          outputs: [],
-          stateMutability: "nonpayable",
-          type: "function",
-        },
-        {
-          inputs: [],
-          name: "resetGame",
-          outputs: [],
-          stateMutability: "nonpayable",
-          type: "function",
-        },
-        {
-          inputs: [
             {
               internalType: "bytes32",
               name: "_reveal",
@@ -788,19 +959,6 @@ const deployedContracts = {
           name: "revealHash",
           outputs: [],
           stateMutability: "nonpayable",
-          type: "function",
-        },
-        {
-          inputs: [],
-          name: "revealValue",
-          outputs: [
-            {
-              internalType: "bytes32",
-              name: "",
-              type: "bytes32",
-            },
-          ],
-          stateMutability: "view",
           type: "function",
         },
       ],

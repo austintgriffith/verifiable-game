@@ -6,186 +6,212 @@ import "hardhat/console.sol";
 
 /**
  * A smart contract that implements a commit-reveal system for generating randomness
- * Only the designated gamemaster can commit and reveal hashes
- * Players can join the game by staking 0.001 ETH when the game is open
+ * Supports multiple games with different gamemasters and stake amounts
+ * Players can join games by staking the required amount when the game is open
  * @author BuidlGuidl
  */
 contract YourContract {
-    // Gamemaster address - the only address that can commit/reveal
-    address public constant GAMEMASTER = 0xc8db9D26551886BaB74F818324aD855A7aBfB632;
+    // Game struct to hold all game-specific data
+    struct Game {
+        address gamemaster;
+        uint256 stakeAmount;
+        bool open;
+        address[] players;
+        mapping(address => bool) hasJoined;
+        
+        // Immutability flags
+        bool hasOpened;
+        bool hasClosed;
+        
+        // Commit-Reveal System State Variables
+        bytes32 committedHash;
+        uint256 commitBlockNumber;
+        bytes32 revealValue;
+        bytes32 randomHash;
+        bool hasCommitted;
+        bool hasRevealed;
+        
+        // Payout System State Variables
+        address[] winners;
+        uint256 payoutAmount;
+        bool hasPaidOut;
+    }
     
-    // Game state variables
-    bool public open = false;
-    address[] public players;
-    mapping(address => bool) public hasJoined;
-    uint256 public constant STAKE_AMOUNT = 0.001 ether;
+    // Global state variables
+    uint256 public nextGameId = 1;
+    mapping(uint256 => Game) public games;
     
-    // Commit-Reveal System State Variables
-    bytes32 public committedHash;
-    uint256 public commitBlockNumber;
-    bytes32 public revealValue;
-    bytes32 public randomHash;
-    bool public hasCommitted = false;
-    bool public hasRevealed = false;
-
     // Events
-    event HashCommitted(bytes32 indexed committedHash, uint256 nextBlockNumber);
-    event HashRevealed(bytes32 indexed reveal, bytes32 indexed randomHash);
-    event GameOpened();
-    event GameClosed();
-    event PlayerJoined(address indexed player);
-    event PayoutCompleted(address[] winners, uint256 amountPerWinner);
+    event GameCreated(uint256 indexed gameId, address indexed gamemaster, uint256 stakeAmount);
+    event HashCommitted(uint256 indexed gameId, bytes32 indexed committedHash, uint256 nextBlockNumber);
+    event HashRevealed(uint256 indexed gameId, bytes32 indexed reveal, bytes32 indexed randomHash);
+    event GameOpened(uint256 indexed gameId);
+    event GameClosed(uint256 indexed gameId);
+    event PlayerJoined(uint256 indexed gameId, address indexed player);
+    event PayoutCompleted(uint256 indexed gameId, address[] winners, uint256 amountPerWinner);
 
     // Constructor
     constructor() {
         // No initialization needed
     }
 
-    // Modifier: used to ensure only the gamemaster can commit/reveal
-    modifier isGamemaster() {
-        require(msg.sender == GAMEMASTER, "Not authorized - only gamemaster can call this function");
+    // Modifier: used to ensure only the gamemaster can call functions for a specific game
+    modifier isGamemaster(uint256 gameId) {
+        require(games[gameId].gamemaster != address(0), "Game does not exist");
+        require(msg.sender == games[gameId].gamemaster, "Not authorized - only gamemaster can call this function");
         _;
+    }
+
+    /**
+     * Function to create a new game with specified gamemaster and stake amount
+     * @param _gamemaster Address of the gamemaster for this game
+     * @param _stakeAmount Amount of ETH required to join this game
+     * @return gameId The ID of the newly created game
+     */
+    function createGame(address _gamemaster, uint256 _stakeAmount) public returns (uint256) {
+        require(_gamemaster != address(0), "Gamemaster cannot be zero address");
+        require(_stakeAmount > 0, "Stake amount must be greater than 0");
+        
+        uint256 gameId = nextGameId++;
+        
+        // Initialize the game
+        games[gameId].gamemaster = _gamemaster;
+        games[gameId].stakeAmount = _stakeAmount;
+        games[gameId].open = false;
+        // Other fields are automatically initialized to default values
+        
+        console.log("Game created with ID: %s", gameId);
+        console.log("Gamemaster: %s, Stake: %s", _gamemaster, _stakeAmount);
+        emit GameCreated(gameId, _gamemaster, _stakeAmount);
+        
+        return gameId;
     }
 
     /**
      * Function that opens the game for players to join
      * Only the gamemaster can call this function
+     * Can only be called once per game (immutable)
      */
-    function openGame() public isGamemaster {
-        require(!open, "Game is already open");
-        open = true;
+    function openGame(uint256 gameId) public isGamemaster(gameId) {
+        require(!games[gameId].hasOpened, "Game has already been opened and cannot be opened again");
+        require(!games[gameId].open, "Game is already open");
         
-        console.log("Game opened for players to join");
-        emit GameOpened();
+        games[gameId].open = true;
+        games[gameId].hasOpened = true;
+        
+        console.log("Game %s opened for players to join", gameId);
+        emit GameOpened(gameId);
     }
 
     /**
      * Function that closes the game, preventing new players from joining
      * Only the gamemaster can call this function
+     * Can only be called once per game and is irreversible (immutable)
      */
-    function closeGame() public isGamemaster {
-        require(open, "Game is already closed");
-        open = false;
+    function closeGame(uint256 gameId) public isGamemaster(gameId) {
+        require(games[gameId].hasOpened, "Game must be opened before it can be closed");
+        require(!games[gameId].hasClosed, "Game has already been closed and cannot be closed again");
+        require(games[gameId].open, "Game is already closed");
         
-        console.log("Game closed. Total players: %s", players.length);
-        emit GameClosed();
+        games[gameId].open = false;
+        games[gameId].hasClosed = true;
+        
+        console.log("Game %s closed. Total players: %s", gameId, games[gameId].players.length);
+        emit GameClosed(gameId);
     }
 
     /**
-     * Function that allows players to join the game by staking 0.001 ETH
+     * Function that allows players to join the game by staking the required amount
      * Players can only join once and only when the game is open
      */
-    function joinGame() public payable {
-        require(open, "Game is not open for joining");
-        require(msg.value == STAKE_AMOUNT, "Must stake exactly 0.001 ETH to join");
-        require(!hasJoined[msg.sender], "Player has already joined the game");
+    function joinGame(uint256 gameId) public payable {
+        require(games[gameId].gamemaster != address(0), "Game does not exist");
+        require(games[gameId].open, "Game is not open for joining");
+        require(msg.value == games[gameId].stakeAmount, "Must stake the exact required amount to join");
+        require(!games[gameId].hasJoined[msg.sender], "Player has already joined the game");
         
         // Add player to the game
-        players.push(msg.sender);
-        hasJoined[msg.sender] = true;
+        games[gameId].players.push(msg.sender);
+        games[gameId].hasJoined[msg.sender] = true;
         
-        console.log("Player %s joined the game", msg.sender);
-        emit PlayerJoined(msg.sender);
+        console.log("Player %s joined game %s", msg.sender, gameId);
+        emit PlayerJoined(gameId, msg.sender);
     }
 
     /**
      * Function to get the list of players who have joined the game
      */
-    function getPlayers() public view returns (address[] memory) {
-        return players;
+    function getPlayers(uint256 gameId) public view returns (address[] memory) {
+        require(games[gameId].gamemaster != address(0), "Game does not exist");
+        return games[gameId].players;
     }
 
     /**
      * Function to get the number of players who have joined
      */
-    function getPlayerCount() public view returns (uint256) {
-        return players.length;
-    }
-
-    /**
-     * Function to reset the game state (only gamemaster can call this)
-     * Clears all players and resets the game to closed state
-     */
-    function resetGame() public isGamemaster {
-        // Reset game state
-        open = false;
-        
-        // Clear players array and mapping
-        for (uint256 i = 0; i < players.length; i++) {
-            hasJoined[players[i]] = false;
-        }
-        delete players;
-        
-        console.log("Game reset - all players cleared");
+    function getPlayerCount(uint256 gameId) public view returns (uint256) {
+        require(games[gameId].gamemaster != address(0), "Game does not exist");
+        return games[gameId].players.length;
     }
 
     /**
      * Function that allows the gamemaster to commit a hash
      * Records the hash and the next block number for later reveal
+     * Can only be called once per game (immutable)
      *
+     * @param gameId The ID of the game
      * @param _hash (bytes32) - the hash to commit
      */
-    function commitHash(bytes32 _hash) public isGamemaster {
-        require(!hasCommitted || hasRevealed, "Previous commit must be revealed first");
+    function commitHash(uint256 gameId, bytes32 _hash) public isGamemaster(gameId) {
+        require(!games[gameId].hasCommitted, "Hash has already been committed and cannot be committed again");
         
-        committedHash = _hash;
-        commitBlockNumber = block.number + 1; // Next block number
-        hasCommitted = true;
-        hasRevealed = false;
+        games[gameId].committedHash = _hash;
+        games[gameId].commitBlockNumber = block.number + 1; // Next block number
+        games[gameId].hasCommitted = true;
+        games[gameId].hasRevealed = false;
 
-        console.log("Hash committed. Next block number: %s", commitBlockNumber);
+        console.log("Hash committed for game %s. Next block number: %s", gameId, games[gameId].commitBlockNumber);
         
-        emit HashCommitted(_hash, commitBlockNumber);
+        emit HashCommitted(gameId, _hash, games[gameId].commitBlockNumber);
     }
 
     /**
      * Function that allows the gamemaster to reveal the committed value
      * Verifies the reveal against the commit and generates randomness using blockhash
      *
+     * @param gameId The ID of the game
      * @param _reveal (bytes32) - the original value that was hashed for the commit
      */
-    function revealHash(bytes32 _reveal) public isGamemaster {
-        require(hasCommitted, "No hash has been committed");
-        require(!hasRevealed, "Hash has already been revealed");
-        require(block.number >= commitBlockNumber, "Cannot reveal before the commit block number");
+    function revealHash(uint256 gameId, bytes32 _reveal) public isGamemaster(gameId) {
+        require(games[gameId].hasCommitted, "No hash has been committed");
+        require(!games[gameId].hasRevealed, "Hash has already been revealed");
+        require(block.number >= games[gameId].commitBlockNumber, "Cannot reveal before the commit block number");
         
         // Verify that the reveal hashes to the committed hash
         bytes32 hashedReveal = keccak256(abi.encodePacked(_reveal));
-        require(hashedReveal == committedHash, "Reveal does not match the committed hash");
+        require(hashedReveal == games[gameId].committedHash, "Reveal does not match the committed hash");
         
         // Get the blockhash from the commit block number for randomness
-        bytes32 blockHash = blockhash(commitBlockNumber);
+        bytes32 blockHash = blockhash(games[gameId].commitBlockNumber);
         require(blockHash != bytes32(0), "Blockhash not available (too old)");
         
         // Create random hash by combining reveal with blockhash
         bytes32 newRandomHash = keccak256(abi.encodePacked(_reveal, blockHash));
         
         // Save the values
-        revealValue = _reveal;
-        randomHash = newRandomHash;
-        hasRevealed = true;
+        games[gameId].revealValue = _reveal;
+        games[gameId].randomHash = newRandomHash;
+        games[gameId].hasRevealed = true;
 
-        console.log("Hash revealed and random hash generated");
+        console.log("Hash revealed and random hash generated for game %s", gameId);
         
-        emit HashRevealed(_reveal, newRandomHash);
-    }
-
-    /**
-     * Function to reset the commit-reveal system (only gamemaster can call this)
-     */
-    function resetCommitReveal() public isGamemaster {
-        committedHash = bytes32(0);
-        commitBlockNumber = 0;
-        revealValue = bytes32(0);
-        randomHash = bytes32(0);
-        hasCommitted = false;
-        hasRevealed = false;
+        emit HashRevealed(gameId, _reveal, newRandomHash);
     }
 
     /**
      * View function to get the current state of the commit-reveal system
      */
-    function getCommitRevealState() public view returns (
+    function getCommitRevealState(uint256 gameId) public view returns (
         bytes32 _committedHash,
         uint256 _commitBlockNumber,
         bytes32 _revealValue,
@@ -193,44 +219,70 @@ contract YourContract {
         bool _hasCommitted,
         bool _hasRevealed
     ) {
+        require(games[gameId].gamemaster != address(0), "Game does not exist");
         return (
-            committedHash,
-            commitBlockNumber,
-            revealValue,
-            randomHash,
-            hasCommitted,
-            hasRevealed
+            games[gameId].committedHash,
+            games[gameId].commitBlockNumber,
+            games[gameId].revealValue,
+            games[gameId].randomHash,
+            games[gameId].hasCommitted,
+            games[gameId].hasRevealed
         );
     }
 
     /**
-     * Function that allows the gamemaster to payout the contract balance to winners
-     * Splits the total contract balance equally among the provided addresses
+     * Function that allows the gamemaster to payout the game's prize pool to winners
+     * Gives the gamemaster 1% of the total prize pool and splits the remaining 99% equally among the winners
      * 
+     * @param gameId The ID of the game
      * @param _winners (address[]) - array of addresses to split the payout among
      */
-    function payout(address[] calldata _winners) public isGamemaster {
+    function payout(uint256 gameId, address[] calldata _winners) public isGamemaster(gameId) {
         require(_winners.length > 0, "Must provide at least one winner address");
+        require(games[gameId].players.length > 0, "No players in the game");
+        require(!games[gameId].hasPaidOut, "Game has already been paid out");
         
-        uint256 contractBalance = address(this).balance;
-        require(contractBalance > 0, "No funds available for payout");
+        // Calculate the total prize pool for this specific game
+        uint256 gamePrizePool = games[gameId].stakeAmount * games[gameId].players.length;
+        require(gamePrizePool > 0, "No prize pool available for this game");
+        require(address(this).balance >= gamePrizePool, "Contract doesn't have enough funds");
         
-        uint256 amountPerWinner = contractBalance / _winners.length;
+        // Calculate gamemaster's 1% cut
+        uint256 gamemasterCut = gamePrizePool / 100; // 1% of the total pot
+        
+        // Calculate remaining 99% for winners
+        uint256 winnersPool = gamePrizePool - gamemasterCut;
+        uint256 amountPerWinner = winnersPool / _winners.length;
         require(amountPerWinner > 0, "Payout amount per winner must be greater than 0");
         
-        console.log("Paying out %s ETH to %s winners (%s ETH each)", contractBalance, _winners.length, amountPerWinner);
+        console.log("Paying out ETH for game %s", gameId);
+        console.log("Game prize pool: %s ETH", gamePrizePool);
+        console.log("Gamemaster cut (1%%): %s ETH", gamemasterCut);
+        console.log("Winners pool (99%%): %s ETH", winnersPool);
+        console.log("Amount per winner: %s ETH", amountPerWinner);
+        
+        // Store winners and payout info in contract state
+        for (uint256 i = 0; i < _winners.length; i++) {
+            require(_winners[i] != address(0), "Winner address cannot be zero address");
+            games[gameId].winners.push(_winners[i]);
+        }
+        games[gameId].payoutAmount = amountPerWinner;
+        games[gameId].hasPaidOut = true;
+        
+        // Send gamemaster their 1% cut first
+        (bool gmSuccess, ) = payable(games[gameId].gamemaster).call{value: gamemasterCut}("");
+        require(gmSuccess, "Failed to send payout to gamemaster");
+        console.log("Sent %s ETH to gamemaster: %s", gamemasterCut, games[gameId].gamemaster);
         
         // Send payout to each winner
         for (uint256 i = 0; i < _winners.length; i++) {
-            require(_winners[i] != address(0), "Winner address cannot be zero address");
-            
             (bool success, ) = payable(_winners[i]).call{value: amountPerWinner}("");
             require(success, "Failed to send payout to winner");
             
             console.log("Sent %s ETH to winner: %s", amountPerWinner, _winners[i]);
         }
         
-        emit PayoutCompleted(_winners, amountPerWinner);
+        emit PayoutCompleted(gameId, _winners, amountPerWinner);
     }
 
     /**
@@ -238,5 +290,51 @@ contract YourContract {
      */
     function getContractBalance() public view returns (uint256) {
         return address(this).balance;
+    }
+
+    /**
+     * Function to get game info including immutability flags
+     */
+    function getGameInfo(uint256 gameId) public view returns (
+        address gamemaster,
+        uint256 stakeAmount,
+        bool open,
+        uint256 playerCount,
+        bool hasOpened,
+        bool hasClosed
+    ) {
+        require(games[gameId].gamemaster != address(0), "Game does not exist");
+        return (
+            games[gameId].gamemaster,
+            games[gameId].stakeAmount,
+            games[gameId].open,
+            games[gameId].players.length,
+            games[gameId].hasOpened,
+            games[gameId].hasClosed
+        );
+    }
+
+    /**
+     * Function to check if a player has joined a specific game
+     */
+    function hasPlayerJoined(uint256 gameId, address player) public view returns (bool) {
+        require(games[gameId].gamemaster != address(0), "Game does not exist");
+        return games[gameId].hasJoined[player];
+    }
+
+    /**
+     * Function to get the payout information for a game
+     */
+    function getPayoutInfo(uint256 gameId) public view returns (
+        address[] memory winners,
+        uint256 payoutAmount,
+        bool hasPaidOut
+    ) {
+        require(games[gameId].gamemaster != address(0), "Game does not exist");
+        return (
+            games[gameId].winners,
+            games[gameId].payoutAmount,
+            games[gameId].hasPaidOut
+        );
     }
 }

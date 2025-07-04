@@ -4,7 +4,7 @@ import { Contract } from "ethers";
 
 /**
  * Deploys a contract named "YourContract" using the deployer account
- * No constructor arguments needed for the commit-reveal contract
+ * This contract supports multiple games with different gamemasters and stake amounts
  *
  * @param hre HardhatRuntimeEnvironment object.
  */
@@ -34,8 +34,10 @@ const deployYourContract: DeployFunction = async function (hre: HardhatRuntimeEn
 
   // Get the deployed contract to interact with it after deploying.
   const yourContract = await hre.ethers.getContract<Contract>("YourContract", deployer);
-  console.log("🎮 Gamemaster address:", await yourContract.GAMEMASTER());
-  console.log("📊 Initial commit-reveal state:", await yourContract.getCommitRevealState());
+  console.log("🎮 Multi-game contract deployed successfully!");
+  console.log("📊 Next game ID:", await yourContract.nextGameId());
+  console.log("💰 Contract balance:", await yourContract.getContractBalance());
+  console.log("🔧 Create games using the createGame function with gamemaster address and stake amount");
 };
 
 export default deployYourContract;
