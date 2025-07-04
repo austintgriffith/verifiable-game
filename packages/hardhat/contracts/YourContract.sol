@@ -34,6 +34,7 @@ contract YourContract {
     event GameOpened();
     event GameClosed();
     event PlayerJoined(address indexed player);
+    event PayoutCompleted(address[] winners, uint256 amountPerWinner);
 
     // Constructor
     constructor() {
@@ -200,5 +201,42 @@ contract YourContract {
             hasCommitted,
             hasRevealed
         );
+    }
+
+    /**
+     * Function that allows the gamemaster to payout the contract balance to winners
+     * Splits the total contract balance equally among the provided addresses
+     * 
+     * @param _winners (address[]) - array of addresses to split the payout among
+     */
+    function payout(address[] calldata _winners) public isGamemaster {
+        require(_winners.length > 0, "Must provide at least one winner address");
+        
+        uint256 contractBalance = address(this).balance;
+        require(contractBalance > 0, "No funds available for payout");
+        
+        uint256 amountPerWinner = contractBalance / _winners.length;
+        require(amountPerWinner > 0, "Payout amount per winner must be greater than 0");
+        
+        console.log("Paying out %s ETH to %s winners (%s ETH each)", contractBalance, _winners.length, amountPerWinner);
+        
+        // Send payout to each winner
+        for (uint256 i = 0; i < _winners.length; i++) {
+            require(_winners[i] != address(0), "Winner address cannot be zero address");
+            
+            (bool success, ) = payable(_winners[i]).call{value: amountPerWinner}("");
+            require(success, "Failed to send payout to winner");
+            
+            console.log("Sent %s ETH to winner: %s", amountPerWinner, _winners[i]);
+        }
+        
+        emit PayoutCompleted(_winners, amountPerWinner);
+    }
+
+    /**
+     * Function to get the current contract balance
+     */
+    function getContractBalance() public view returns (uint256) {
+        return address(this).balance;
     }
 }
