@@ -202,8 +202,6 @@ const GamePageContent = () => {
   const timeUntilAbandonmentTimeout = abandonmentInfo?.[1] || 0n;
 
   // Withdrawal state derived from contract data
-  const withdrawalStartTime = withdrawalInfo?.[0] || 0n;
-  const canWithdraw = withdrawalInfo?.[1] || false;
   const canWithdrawNow = withdrawalInfo?.[2] || false;
   const timeUntilWithdrawal = withdrawalInfo?.[3] || 0n;
 
@@ -244,59 +242,23 @@ const GamePageContent = () => {
     console.log("🎯 Current payout state:", { hasPaidOut, winners, payoutAmount });
   }, [hasPaidOut, winners, payoutAmount]);
 
-  // Debug state changes
+  // Debug state changes (only log significant changes)
   useEffect(() => {
-    console.log("🔍 State Debug Info:");
-    console.log("  - Connected Address:", connectedAddress);
-    console.log("  - Game ID:", gameId);
-    console.log("  - Is Authenticated:", isAuthenticated);
-    console.log("  - Is Player:", isPlayer);
-    console.log("  - Is Creator:", isCreator);
-    console.log("  - Can Play:", canPlay);
-    console.log("  - Game Status:", gameStatus ? "loaded" : "not loaded");
-    console.log("  - JWT Token:", jwtToken ? "present" : "null");
-    console.log("  - Game Is Open:", gameIsOpen);
-    console.log("  - Has Opened:", hasOpened);
-    console.log("  - Has Closed:", hasClosed);
-    console.log("  - Has Committed:", hasCommitted);
-    console.log("  - Contract Players:", contractPlayers);
-    console.log("  - Has Paid Out:", hasPaidOut);
-    console.log("  - Winners:", winners);
-    console.log("  - Payout Amount:", payoutAmount);
-    console.log("  - Is Abandoned:", isAbandoned);
-    console.log("  - Time Until Abandonment:", timeUntilAbandonmentTimeout);
-    console.log("  - Withdrawal Start Time:", withdrawalStartTime);
-    console.log("  - Can Withdraw:", canWithdraw);
-    console.log("  - Can Withdraw Now:", canWithdrawNow);
-    console.log("  - Time Until Withdrawal:", timeUntilWithdrawal);
-    console.log("  - Game Time Remaining:", timeRemaining);
-    console.log("  - Has Player Withdrawn:", hasWithdrawn);
-  }, [
-    connectedAddress,
-    gameId,
-    isAuthenticated,
-    isPlayer,
-    isCreator,
-    canPlay,
-    gameStatus,
-    jwtToken,
-    gameIsOpen,
-    hasOpened,
-    hasClosed,
-    hasCommitted,
-    contractPlayers,
-    hasPaidOut,
-    winners,
-    payoutAmount,
-    isAbandoned,
-    timeUntilAbandonmentTimeout,
-    withdrawalStartTime,
-    canWithdraw,
-    canWithdrawNow,
-    timeUntilWithdrawal,
-    timeRemaining,
-    hasWithdrawn,
-  ]);
+    // Only log on important state changes to reduce console spam
+    const shouldLog = !isAuthenticated || !gameStatus || !playerMap;
+
+    if (shouldLog) {
+      console.log("🔍 State Debug Info:");
+      console.log("  - Connected Address:", connectedAddress);
+      console.log("  - Game ID:", gameId);
+      console.log("  - Is Authenticated:", isAuthenticated);
+      console.log("  - Is Player:", isPlayer);
+      console.log("  - Can Play:", canPlay);
+      console.log("  - Game Status:", gameStatus ? "loaded" : "not loaded");
+      console.log("  - Has Closed:", hasClosed);
+      console.log("  - Has Paid Out:", hasPaidOut);
+    }
+  }, [connectedAddress, gameId, isAuthenticated, isPlayer, canPlay, gameStatus, hasClosed, hasPaidOut]);
 
   // Authentication functions
   const signIn = async () => {
@@ -1009,6 +971,21 @@ const GamePageContent = () => {
     }
   }, [canPlay, jwtToken, fetchPlayerMap]); // Added fetchPlayerMap back with useCallback
 
+  // Memoize radar calculations to prevent re-renders
+  const radarConfig = useMemo(() => {
+    if (!canPlay || !playerMap) return null;
+
+    const numPlayers = Number(playerCount || 0);
+    const tileSize = numPlayers > 100 ? 1 : numPlayers > 25 ? 2 : numPlayers > 10 ? 3 : numPlayers > 5 ? 4 : 5;
+    const mapSize = gameStatus?.mapSize || playerMap.mapSize;
+
+    return {
+      tileSize,
+      mapSize,
+      dimensions: `${mapSize * tileSize + 8}px`,
+    };
+  }, [canPlay, playerMap, playerCount, gameStatus?.mapSize]);
+
   // Update discovered tiles when player map changes
   useEffect(() => {
     if (playerMap?.localView) {
@@ -1073,64 +1050,41 @@ const GamePageContent = () => {
 
       <div className="flex items-center flex-col grow pt-10">
         {/* Floating Radar/Map View */}
-        {canPlay &&
-          playerMap &&
-          (() => {
-            // Dynamic tile size based on player count
-            const numPlayers = Number(playerCount || 0);
-            const tileSize = numPlayers > 100 ? 1 : numPlayers > 25 ? 2 : numPlayers > 10 ? 3 : numPlayers > 5 ? 4 : 5;
-            const mapSize = gameStatus?.mapSize || playerMap.mapSize;
+        {radarConfig && (
+          <div
+            className="fixed top-20 left-4 bg-white border border-gray-400 shadow-lg z-50"
+            style={{
+              width: radarConfig.dimensions,
+              height: radarConfig.dimensions,
+              padding: "4px",
+              display: "grid",
+              gridTemplateColumns: `repeat(${radarConfig.mapSize}, ${radarConfig.tileSize}px)`,
+              gridTemplateRows: `repeat(${radarConfig.mapSize}, ${radarConfig.tileSize}px)`,
+            }}
+          >
+            {Array.from({ length: radarConfig.mapSize * radarConfig.mapSize }, (_, index) => {
+              const x = index % radarConfig.mapSize;
+              const y = Math.floor(index / radarConfig.mapSize);
+              const key = `${x},${y}`;
+              const tileType = discoveredTiles.get(key);
+              const isPlayerPosition = playerMap?.position && playerMap.position.x === x && playerMap.position.y === y;
 
-            // Debug logging for map radar sizing
-            console.log("🗺️ MAP RADAR DEBUG:");
-            console.log("  - Contract Player Count:", playerCount);
-            console.log("  - Numeric Players:", numPlayers);
-            console.log("  - Calculated Tile Size:", tileSize);
-            console.log("  - Game Status Map Size:", gameStatus?.mapSize);
-            console.log("  - Player Map Size:", playerMap.mapSize);
-            console.log("  - Final Map Size Used:", mapSize);
-            console.log("  - Game Status Game ID:", gameStatus?.gameId);
-            console.log("  - Expected Game ID:", gameId);
-            console.log("  - Map Size Source:", gameStatus?.mapSize ? "gameStatus" : "playerMap");
-            console.log("  - Final Radar Dimensions:", `${mapSize * tileSize + 8}px x ${mapSize * tileSize + 8}px`);
-
-            return (
-              <div
-                className="fixed top-20 left-4 bg-white border border-gray-400 shadow-lg z-50"
-                style={{
-                  width: `${mapSize * tileSize + 8}px`,
-                  height: `${mapSize * tileSize + 8}px`,
-                  padding: "4px",
-                  display: "grid",
-                  gridTemplateColumns: `repeat(${mapSize}, ${tileSize}px)`,
-                  gridTemplateRows: `repeat(${mapSize}, ${tileSize}px)`,
-                }}
-              >
-                {Array.from({ length: mapSize * mapSize }, (_, index) => {
-                  const x = index % mapSize;
-                  const y = Math.floor(index / mapSize);
-                  const key = `${x},${y}`;
-                  const tileType = discoveredTiles.get(key);
-                  const isPlayerPosition =
-                    playerMap.position && playerMap.position.x === x && playerMap.position.y === y;
-
-                  return (
-                    <div
-                      key={key}
-                      style={{
-                        width: `${tileSize}px`,
-                        height: `${tileSize}px`,
-                        backgroundColor: tileType !== undefined ? getRadarTileColor(tileType) : "#f3f4f6", // Gray-100 for unknown
-                        border: isPlayerPosition ? "1px solid #ef4444" : "none", // Red border for player position
-                        boxSizing: "border-box",
-                      }}
-                      title={`${x},${y}: ${tileType !== undefined ? `Tile ${tileType}` : "Unknown"}`}
-                    />
-                  );
-                })}
-              </div>
-            );
-          })()}
+              return (
+                <div
+                  key={key}
+                  style={{
+                    width: `${radarConfig.tileSize}px`,
+                    height: `${radarConfig.tileSize}px`,
+                    backgroundColor: tileType !== undefined ? getRadarTileColor(tileType) : "#f3f4f6", // Gray-100 for unknown
+                    border: isPlayerPosition ? "1px solid #ef4444" : "none", // Red border for player position
+                    boxSizing: "border-box",
+                  }}
+                  title={`${x},${y}: ${tileType !== undefined ? `Tile ${tileType}` : "Unknown"}`}
+                />
+              );
+            })}
+          </div>
+        )}
 
         <div className="px-5 w-full max-w-4xl">
           {/* Header */}
