@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import Image from "next/image";
 import Link from "next/link";
 import type { NextPage } from "next";
 import { formatEther } from "viem";
@@ -25,7 +26,14 @@ const GameListContent = () => {
         <div className="px-5 w-full max-w-4xl">
           {/* Cover Image with Button on top */}
           <div className="text-center mb-8 relative">
-            <img src="/cover.png" alt="Game Cover" className="w-full max-w-2xl h-auto mx-auto" />
+            <Image
+              src="/cover.png"
+              alt="Game Cover"
+              className="w-full max-w-2xl h-auto mx-auto"
+              width={800}
+              height={600}
+              priority
+            />
 
             {/* Create Game Button positioned on top of image */}
             <div className="absolute inset-0 flex items-end justify-center pb-20">

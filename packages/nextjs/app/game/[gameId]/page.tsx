@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import type { NextPage } from "next";
 import { QRCodeSVG } from "qrcode.react";
@@ -142,7 +142,7 @@ const GamePageContent = () => {
   const hasClosed = gameInfo?.[6];
 
   // Payout state derived from contract data
-  const winners = payoutInfo?.[0] || [];
+  const winners = useMemo(() => payoutInfo?.[0] || [], [payoutInfo]);
   const payoutAmount = payoutInfo?.[1] || 0n;
   const hasPaidOut = payoutInfo?.[2] || false;
 
