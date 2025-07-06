@@ -134,9 +134,12 @@ const GamePageContent = () => {
 
   // Game state derived from contract data
   const gamemaster = gameInfo?.[0];
-  const stakeAmount = gameInfo?.[1];
-  const open = gameInfo?.[2];
-  const playerCount = gameInfo?.[3];
+  const creator = gameInfo?.[1];
+  const stakeAmount = gameInfo?.[2];
+  const open = gameInfo?.[3];
+  const playerCount = gameInfo?.[4];
+  const hasOpened = gameInfo?.[5];
+  const hasClosed = gameInfo?.[6];
 
   // Payout state derived from contract data
   const winners = payoutInfo?.[0] || [];
@@ -146,7 +149,6 @@ const GamePageContent = () => {
   // Commit-reveal state derived from contract data
   const committedHash = commitRevealState?.[0];
   const commitBlockNumber = commitRevealState?.[1];
-  const revealValue = commitRevealState?.[2];
   const randomHash = commitRevealState?.[3];
   const hasCommitted = commitRevealState?.[4] || false;
   const hasRevealed = commitRevealState?.[5] || false;
@@ -155,6 +157,7 @@ const GamePageContent = () => {
   const isPlayer = connectedAddress && contractPlayers?.includes(connectedAddress);
   const canPlay = isPlayer && isAuthenticated;
   const gameIsOpen = open || gameStatus?.open; // Use contract data as primary source, fallback to server data
+  const isCreator = connectedAddress && creator && connectedAddress.toLowerCase() === creator.toLowerCase();
 
   // Process payout state from contract
   useEffect(() => {
@@ -194,10 +197,14 @@ const GamePageContent = () => {
     console.log("  - Game ID:", gameId);
     console.log("  - Is Authenticated:", isAuthenticated);
     console.log("  - Is Player:", isPlayer);
+    console.log("  - Is Creator:", isCreator);
     console.log("  - Can Play:", canPlay);
     console.log("  - Game Status:", gameStatus ? "loaded" : "not loaded");
     console.log("  - JWT Token:", jwtToken ? "present" : "null");
     console.log("  - Game Is Open:", gameIsOpen);
+    console.log("  - Has Opened:", hasOpened);
+    console.log("  - Has Closed:", hasClosed);
+    console.log("  - Has Committed:", hasCommitted);
     console.log("  - Contract Players:", contractPlayers);
     console.log("  - Has Paid Out:", hasPaidOut);
     console.log("  - Winners:", winners);
@@ -207,10 +214,14 @@ const GamePageContent = () => {
     gameId,
     isAuthenticated,
     isPlayer,
+    isCreator,
     canPlay,
     gameStatus,
     jwtToken,
     gameIsOpen,
+    hasOpened,
+    hasClosed,
+    hasCommitted,
     contractPlayers,
     hasPaidOut,
     winners,
@@ -370,6 +381,36 @@ const GamePageContent = () => {
     } catch (err) {
       console.error("💥 Failed to join game:", err);
       setError("Failed to join game. Please try again.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Close game function (for creator)
+  const closeGame = async () => {
+    if (!connectedAddress) {
+      setError("Please connect your wallet first");
+      return;
+    }
+
+    if (!isCreator) {
+      setError("Only the game creator can close the game");
+      return;
+    }
+
+    setLoading(true);
+    setError(null);
+
+    try {
+      console.log("🔒 Attempting to close game...");
+      await writeYourContractAsync({
+        functionName: "closeGame",
+        args: [BigInt(gameId)],
+      });
+      console.log("✅ Successfully closed the game!");
+    } catch (err) {
+      console.error("💥 Failed to close game:", err);
+      setError("Failed to close game. Please try again.");
     } finally {
       setLoading(false);
     }
@@ -592,19 +633,6 @@ const GamePageContent = () => {
     }
   };
 
-  const getTileName = (tileType: number) => {
-    switch (tileType) {
-      case 1:
-        return "Common";
-      case 2:
-        return "Uncommon";
-      case 3:
-        return "Rare";
-      default:
-        return "Unknown";
-    }
-  };
-
   const getDirectionFromPosition = (rowIndex: number, colIndex: number): string | null => {
     const directions = [
       ["northwest", "north", "northeast"],
@@ -614,9 +642,21 @@ const GamePageContent = () => {
     return directions[rowIndex][colIndex] || null;
   };
 
-  // Poll for updates every 2 seconds
+  // Poll for updates every 1 second - only when game is closed but not finished
   useEffect(() => {
     console.log("⏰ Setting up polling interval...");
+    console.log("Game closed status:", hasClosed);
+    console.log("Has paid out:", hasPaidOut);
+
+    if (!hasClosed) {
+      console.log("⏸️ Game not closed yet, skipping API calls");
+      return;
+    }
+
+    if (hasPaidOut) {
+      console.log("🎉 Game finished with payout, stopping API calls");
+      return;
+    }
 
     fetchGameStatus();
     fetchAllPlayers();
@@ -627,12 +667,12 @@ const GamePageContent = () => {
       if (canPlay) {
         fetchPlayerMap();
       }
-    }, 2000);
+    }, 1000);
 
     return () => {
       clearInterval(interval);
     };
-  }, [canPlay, fetchPlayerMap]);
+  }, [canPlay, fetchPlayerMap, hasClosed, hasPaidOut]);
 
   // Fetch player map when authentication and player status change
   useEffect(() => {
@@ -671,7 +711,6 @@ const GamePageContent = () => {
           <div className="flex items-center justify-between mb-8">
             <div>
               <h1 className="text-4xl font-bold mb-2">Game #{gameId}</h1>
-              <p className="text-lg text-gray-600">{open ? "🟢 Open for players" : "🔴 Closed"}</p>
             </div>
             <button className="btn btn-ghost" onClick={() => router.push("/")}>
               ← Back to Games
@@ -770,14 +809,6 @@ const GamePageContent = () => {
               <div className="flex flex-col items-center text-center space-y-4">
                 {gameIsOpen ? (
                   <>
-                    <h2 className="text-2xl font-bold text-blue-800 mb-2">🎮 Join the Game!</h2>
-                    <p className="text-lg text-blue-700 mb-4">
-                      The game is open and accepting new players. Stake your ETH to join!
-                    </p>
-                    <div className="bg-white p-4 rounded-lg shadow-sm mb-4">
-                      <p className="text-sm text-gray-600 mb-2">Stake Amount:</p>
-                      <p className="text-2xl font-bold text-blue-600">{formatEther(stakeAmount || 0n)} ETH</p>
-                    </div>
                     <button
                       className={`btn btn-primary btn-lg ${loading ? "loading" : ""}`}
                       onClick={joinGame}
@@ -785,47 +816,63 @@ const GamePageContent = () => {
                     >
                       {loading ? "Joining Game..." : `🚀 Join Game (${formatEther(stakeAmount || 0n)} ETH)`}
                     </button>
-                    <p className="text-sm text-gray-600 max-w-md">
-                      By joining, you&apos;ll be eligible to play and compete for the prize pool. Your stake will be
-                      held in the contract until the game ends.
-                    </p>
                   </>
                 ) : (
                   <>
-                    <h2 className="text-2xl font-bold text-gray-800 mb-2">🔒 Game Not Open</h2>
-                    <p className="text-lg text-gray-700">
-                      The game is not currently open for new players. Check back later or contact the game
-                      administrator.
-                    </p>
+                    <h2 className="text-2xl font-bold text-gray-800 mb-2">
+                      ⏳ Waiting for gamemaster to open the game...
+                    </h2>
                   </>
                 )}
               </div>
             </div>
           )}
 
-          {/* Authentication Status - Show prominently at top ONLY when NOT authenticated */}
+          {/* Game Status - Show prominently at top when player is not authenticated */}
           {connectedAddress && isPlayer && hasEth && !isAuthenticated && (
             <div className="bg-base-100 rounded-lg p-6 mb-6 shadow-lg border-2 border-primary">
-              <h2 className="text-2xl font-bold mb-4 text-center">🔐 Authentication Required</h2>
-              <div className="flex flex-col items-center space-y-4">
-                <div className="flex items-center space-x-4">
-                  <span className="font-semibold text-lg">Status:</span>
-                  <span className="px-4 py-2 rounded-full text-sm font-bold bg-red-100 text-red-800">
-                    ❌ Not Authenticated
-                  </span>
-                </div>
+              {!hasClosed ? (
+                <>
+                  <h2 className="text-2xl font-bold mb-4 text-center">⏳ Waiting for Game to Start</h2>
+                </>
+              ) : (
+                <>
+                  <h2 className="text-2xl font-bold mb-4 text-center">🔐 Authentication Required</h2>
+                  <div className="flex flex-col items-center space-y-4">
+                    <button
+                      className={`btn btn-primary btn-lg ${authLoading ? "loading" : ""}`}
+                      onClick={signIn}
+                      disabled={authLoading || !connectedAddress || !isPlayer}
+                    >
+                      {authLoading ? "Signing In..." : "🔑 Sign In to Play"}
+                    </button>
+                  </div>
+                </>
+              )}
+            </div>
+          )}
 
-                <button
-                  className={`btn btn-primary btn-lg ${authLoading ? "loading" : ""}`}
-                  onClick={signIn}
-                  disabled={authLoading || !connectedAddress || !isPlayer}
-                >
-                  {authLoading ? "Signing In..." : "🔑 Sign In to Play"}
-                </button>
-                <p className="text-sm text-gray-600 text-center max-w-md">
-                  You need to sign a message with your wallet to authenticate and start playing the game. This proves
-                  you own the wallet address.
-                </p>
+          {/* Game Creator Controls - Show right after game status if user is creator and game hasn't closed */}
+          {isCreator && !hasClosed && (
+            <div className="bg-gradient-to-r from-purple-50 to-blue-50 border-2 border-purple-300 rounded-lg p-6 mb-6 shadow-lg">
+              <div className="flex flex-col items-center space-y-4">
+                {/* Action buttons */}
+                {hasOpened && !hasClosed && (
+                  <button
+                    className={`btn btn-primary btn-lg ${loading ? "loading" : ""}`}
+                    onClick={closeGame}
+                    disabled={loading || !playerCount || playerCount === 0n}
+                  >
+                    {loading ? "Starting..." : "🚀 Start Game"}
+                  </button>
+                )}
+
+                {/* Status messages */}
+                {hasClosed && (
+                  <div className="text-center p-3 bg-gray-100 rounded-lg">
+                    <p className="text-gray-700 font-medium">Game has been closed permanently</p>
+                  </div>
+                )}
               </div>
             </div>
           )}
@@ -835,31 +882,12 @@ const GamePageContent = () => {
             <div className="bg-base-100 rounded-lg p-6 shadow-lg mb-6">
               <h2 className="text-xl font-bold mb-4">Your Game View</h2>
 
-              {/* Player Stats */}
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6 text-center">
-                <div className="bg-base-200 rounded-lg p-3">
-                  <p className="text-sm text-gray-600">Score</p>
-                  <p className="text-xl font-bold text-green-600">{playerMap.score ?? 0}</p>
-                </div>
-                <div className="bg-base-200 rounded-lg p-3">
-                  <p className="text-sm text-gray-600">Moves Left</p>
-                  <p className="text-xl font-bold text-blue-600">{playerMap.movesRemaining ?? 0}</p>
-                </div>
-                <div className="bg-base-200 rounded-lg p-3">
-                  <p className="text-sm text-gray-600">Mines Left</p>
-                  <p className="text-xl font-bold text-orange-600">{playerMap.minesRemaining ?? 0}</p>
-                </div>
-                <div className="bg-base-200 rounded-lg p-3">
-                  <p className="text-sm text-gray-600">Position</p>
-                  <p className="text-xl font-bold text-purple-600">
-                    ({playerMap.position.x}, {playerMap.position.y})
-                  </p>
-                </div>
-              </div>
-
               {/* Interactive 3x3 Map Grid */}
               <div className="mb-6">
-                <h3 className="text-lg font-semibold mb-3 text-center">Local View (Click to Move)</h3>
+                <h3 className="text-lg font-semibold mb-3 text-center">
+                  Score: {playerMap.score ?? 0} | Moves: {playerMap.movesRemaining ?? 0} | Mines:{" "}
+                  {playerMap.minesRemaining ?? 0} | Position: ({playerMap.position.x}, {playerMap.position.y})
+                </h3>
                 <div className="grid grid-cols-3 gap-2 max-w-xs mx-auto">
                   {playerMap.localView.map((row, rowIndex) =>
                     row.map((cell, colIndex) => {
@@ -972,83 +1000,21 @@ const GamePageContent = () => {
             </div>
           )}
 
-          {/* Game Closed but No Payout Yet */}
-          {!hasPaidOut && !gameIsOpen && contractPlayers && contractPlayers.length > 0 && (
-            <div className="bg-gradient-to-r from-orange-50 to-red-50 border-2 border-orange-300 rounded-lg p-6 mb-6 shadow-lg">
-              <div className="text-center">
-                <h2 className="text-2xl font-bold text-orange-800 mb-4">🔒 Game Closed - Awaiting Payout</h2>
-                <p className="text-lg text-gray-700 mb-4">
-                  The game has been closed by the gamemaster but winners haven&apos;t been paid out yet.
-                </p>
-
-                <div className="bg-white p-4 rounded-lg shadow-sm mb-4">
-                  <p className="text-sm text-gray-600 mb-2">Prize Pool:</p>
-                  <p className="text-2xl font-bold text-orange-600">
-                    {formatEther((stakeAmount || 0n) * BigInt(contractPlayers.length))} ETH
-                  </p>
-                  <p className="text-sm text-gray-500 mt-1">
-                    ({contractPlayers.length} players × {formatEther(stakeAmount || 0n)} ETH each)
-                  </p>
-                </div>
-
-                <div className="space-y-3">
-                  <p className="text-sm text-gray-700">
-                    The gamemaster needs to call the payout function to distribute winnings to the winners.
-                  </p>
-                  <p className="text-sm text-gray-600">
-                    Gamemaster: <Address address={gamemaster} />
-                  </p>
-                </div>
-              </div>
-            </div>
-          )}
-
-          {/* Game Status - Always show when available */}
-          {(gameStatus || contractPlayers) && (
-            <div className="bg-base-100 rounded-lg p-6 mb-6 shadow-lg">
-              <h2 className="text-xl font-bold mb-4">Game Status</h2>
-              <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
-                <div>
-                  <p className="font-semibold">Game Loaded:</p>
-                  <p className={gameStatus?.gameLoaded ? "text-green-600" : "text-red-600"}>
-                    {gameStatus?.gameLoaded ? "Yes" : "No"}
-                  </p>
-                </div>
-                <div>
-                  <p className="font-semibold">Map Size:</p>
-                  <p>
-                    {gameStatus?.mapSize}x{gameStatus?.mapSize}
-                  </p>
-                </div>
-                <div>
-                  <p className="font-semibold">Total Players:</p>
-                  <p>{contractPlayers?.length || gameStatus?.totalPlayers || 0}</p>
-                </div>
-                <div>
-                  <p className="font-semibold">You are a player:</p>
-                  <p className={isPlayer ? "text-green-600" : "text-red-600"}>{isPlayer ? "Yes" : "No"}</p>
-                </div>
-                <div>
-                  <p className="font-semibold">Can play:</p>
-                  <p className={canPlay ? "text-green-600" : "text-red-600"}>{canPlay ? "Yes" : "No"}</p>
-                </div>
-              </div>
-            </div>
-          )}
-
-          {/* All Players List - Always show when available */}
+          {/* Players List - Consolidated */}
           {(allPlayers.length > 0 || (contractPlayers && contractPlayers.length > 0)) && (
             <div className="bg-base-100 rounded-lg p-6 mb-6 shadow-lg">
-              <h2 className="text-xl font-bold mb-4">All Players ({contractPlayers?.length || allPlayers.length})</h2>
+              <h2 className="text-xl font-bold mb-4">Players ({contractPlayers?.length || allPlayers.length})</h2>
               <div className="space-y-3">
                 {allPlayers.length > 0
                   ? allPlayers.map(player => (
                       <div key={player.address} className="p-4 bg-base-200 rounded-lg">
                         <div className="flex justify-between items-start mb-2">
                           <Address address={player.address} />
-                          <span className={`px-2 py-1 rounded text-xs ${getTileColor(player.tile)}`}>
-                            {getTileName(player.tile)}
-                          </span>
+                          <div className="flex items-center space-x-2">
+                            {connectedAddress && player.address.toLowerCase() === connectedAddress.toLowerCase() && (
+                              <span className="badge badge-primary">You</span>
+                            )}
+                          </div>
                         </div>
                         <div className="grid grid-cols-2 md:grid-cols-4 gap-2 text-sm">
                           <div>
@@ -1072,33 +1038,19 @@ const GamePageContent = () => {
                         </div>
                       </div>
                     ))
-                  : contractPlayers?.map(playerAddress => (
-                      <div key={playerAddress} className="p-4 bg-base-200 rounded-lg">
+                  : contractPlayers?.map((playerAddress, index) => (
+                      <div key={`${playerAddress}-${index}`} className="p-4 bg-base-200 rounded-lg">
                         <div className="flex justify-between items-start mb-2">
                           <Address address={playerAddress} />
-                          <span className="px-2 py-1 rounded text-xs bg-gray-200">Joined</span>
-                        </div>
-                        <div className="text-sm text-gray-600">
-                          <p>Game server data not available - showing contract players only</p>
+                          <div className="flex items-center space-x-2">
+                            <span className="px-2 py-1 rounded text-xs bg-gray-200">Joined</span>
+                            {connectedAddress && playerAddress.toLowerCase() === connectedAddress.toLowerCase() && (
+                              <span className="badge badge-primary">You</span>
+                            )}
+                          </div>
                         </div>
                       </div>
                     ))}
-              </div>
-            </div>
-          )}
-
-          {/* Instructions for players who have bought in but game hasn't started */}
-          {connectedAddress && hasEth && isPlayer && !canPlay && (
-            <div className="bg-green-50 border-l-4 border-green-400 p-6 rounded mb-6">
-              <div className="flex flex-col items-center text-center space-y-4">
-                <p className="text-lg font-semibold text-green-800 mb-2">✅ You have bought in!</p>
-                <p className="text-sm text-green-700">
-                  You have successfully paid the stake amount and joined the game. You are waiting for the game to
-                  start.
-                </p>
-                <p className="text-sm text-green-600">
-                  Once the game server is ready, you can authenticate and start playing.
-                </p>
               </div>
             </div>
           )}
@@ -1110,6 +1062,13 @@ const GamePageContent = () => {
               <div>
                 <p className="text-sm text-gray-600 mb-1">Gamemaster</p>
                 <Address address={gamemaster} />
+              </div>
+              <div>
+                <p className="text-sm text-gray-600 mb-1">Creator</p>
+                <Address address={creator} />
+                {isCreator && (
+                  <span className="ml-2 px-2 py-1 bg-blue-100 text-blue-800 text-xs rounded-full">You</span>
+                )}
               </div>
               <div>
                 <p className="text-sm text-gray-600 mb-1">Stake Amount</p>
@@ -1129,77 +1088,76 @@ const GamePageContent = () => {
                   {open ? "Open" : "Closed"}
                 </span>
               </div>
+              {(hasCommitted || hasRevealed) && (
+                <div>
+                  <p className="text-sm text-gray-600 mb-1">Commit-Reveal</p>
+                  <div
+                    className="cursor-help"
+                    title={
+                      hasRevealed
+                        ? `Hash committed at block ${commitBlockNumber} - Revealed random hash: ${randomHash}`
+                        : hasCommitted
+                          ? `Hash committed: ${committedHash} (Block: ${commitBlockNumber}) - Waiting for reveal`
+                          : "No commit yet"
+                    }
+                  >
+                    {hasRevealed ? (
+                      <span className="text-green-600">✅ Hash revealed: {randomHash?.slice(0, 12)}...</span>
+                    ) : hasCommitted ? (
+                      <span className="text-yellow-600">Hash committed, waiting for reveal.</span>
+                    ) : (
+                      <span className="text-gray-600">❌ Not Committed</span>
+                    )}
+                  </div>
+                </div>
+              )}
             </div>
           </div>
 
-          {/* Players List */}
-          {contractPlayers && contractPlayers.length > 0 && (
-            <div className="bg-base-100 rounded-lg p-6 shadow-lg mb-6">
-              <h2 className="text-2xl font-bold mb-4">Players ({contractPlayers.length})</h2>
-              <div className="space-y-2">
-                {contractPlayers.map((player, index) => (
-                  <div
-                    key={`${player}-${index}`}
-                    className="flex items-center justify-between p-3 bg-base-200 rounded-lg"
+          {/* Share Game */}
+          <div className="bg-base-100 rounded-lg p-6 shadow-lg mb-6">
+            <h2 className="text-2xl font-bold mb-4">Share Game</h2>
+            <div className="flex flex-col items-center space-y-4">
+              {/* QR Code */}
+              <div className="bg-white p-4 rounded-lg shadow-sm">
+                <QRCodeSVG value={typeof window !== "undefined" ? window.location.href : ""} size={180} />
+              </div>
+
+              {/* URL with Copy Button */}
+              <div className="flex items-center space-x-2 bg-gray-50 p-3 rounded-lg w-full max-w-md">
+                <span className="text-sm text-gray-700 truncate flex-1">
+                  {typeof window !== "undefined" ? window.location.href : ""}
+                </span>
+                <button
+                  className="btn btn-ghost btn-sm"
+                  onClick={() => {
+                    if (typeof window !== "undefined") {
+                      navigator.clipboard.writeText(window.location.href).then(() => {
+                        // You could add a toast notification here if you have one
+                        console.log("URL copied to clipboard!");
+                      });
+                    }
+                  }}
+                  title="Copy URL"
+                >
+                  <svg
+                    className="w-4 h-4"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                    xmlns="http://www.w3.org/2000/svg"
                   >
-                    <Address address={player} />
-                    {connectedAddress && player.toLowerCase() === connectedAddress.toLowerCase() && (
-                      <span className="badge badge-primary">You</span>
-                    )}
-                  </div>
-                ))}
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"
+                    />
+                  </svg>
+                </button>
               </div>
             </div>
-          )}
-
-          {/* Commit-Reveal State Display - Moved to bottom */}
-          {(hasCommitted || hasRevealed) && (
-            <div className="bg-gradient-to-r from-blue-50 to-purple-50 border-2 border-blue-300 rounded-lg p-6 mb-6 shadow-lg">
-              <div className="text-center">
-                <h2 className="text-2xl font-bold text-blue-800 mb-4">🔐 Commit-Reveal State</h2>
-
-                {/* Commit Status */}
-                {hasCommitted && (
-                  <div className="bg-white p-4 rounded-lg shadow-sm mb-4">
-                    <div className="flex items-center justify-center space-x-2 mb-2">
-                      <span className="text-green-600">✅</span>
-                      <h3 className="text-lg font-semibold text-gray-800">Hash Committed</h3>
-                    </div>
-                    <p className="text-sm text-gray-600 mb-2">Committed Hash:</p>
-                    <p className="text-sm font-mono bg-gray-100 p-2 rounded break-all">{committedHash}</p>
-                    <p className="text-sm text-gray-600 mt-2">Commit Block: {commitBlockNumber?.toString()}</p>
-                  </div>
-                )}
-
-                {/* Reveal Status */}
-                {hasRevealed && (
-                  <div className="bg-white p-4 rounded-lg shadow-sm mb-4">
-                    <div className="flex items-center justify-center space-x-2 mb-2">
-                      <span className="text-green-600">✅</span>
-                      <h3 className="text-lg font-semibold text-gray-800">Hash Revealed</h3>
-                    </div>
-                    <p className="text-sm text-gray-600 mb-2">Revealed Value:</p>
-                    <p className="text-sm font-mono bg-gray-100 p-2 rounded break-all">{revealValue}</p>
-                    <p className="text-sm text-gray-600 mt-2 mb-2">Generated Random Hash:</p>
-                    <p className="text-sm font-mono bg-gray-100 p-2 rounded break-all">{randomHash}</p>
-                  </div>
-                )}
-
-                {/* Waiting for reveal */}
-                {hasCommitted && !hasRevealed && (
-                  <div className="bg-yellow-50 border-2 border-yellow-300 rounded-lg p-4">
-                    <div className="flex items-center justify-center space-x-2">
-                      <span className="text-yellow-600">⏳</span>
-                      <p className="text-lg font-semibold text-yellow-800">Waiting for Reveal</p>
-                    </div>
-                    <p className="text-sm text-yellow-700 mt-2">
-                      The gamemaster has committed a hash and now needs to reveal it to generate randomness.
-                    </p>
-                  </div>
-                )}
-              </div>
-            </div>
-          )}
+          </div>
         </div>
       </div>
     </>

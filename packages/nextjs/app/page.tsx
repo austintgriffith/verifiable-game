@@ -21,26 +21,35 @@ const GameListContent = () => {
 
   return (
     <>
-      <div className="flex items-center flex-col grow pt-10">
+      <div className="flex items-center flex-col grow pt-2">
         <div className="px-5 w-full max-w-4xl">
-          {/* Header */}
-          <div className="text-center mb-8">
-            <h1 className="text-4xl font-bold mb-4">🎮 Game Hub</h1>
-            <p className="text-lg text-gray-600">Discover active games or create your own commit-reveal game</p>
-          </div>
+          {/* Cover Image with Button on top */}
+          <div className="text-center mb-8 relative">
+            <img src="/cover.png" alt="Game Cover" className="w-full max-w-2xl h-auto mx-auto" />
 
-          {/* Create Game Button */}
-          <div className="text-center mb-8">
-            <Link href="/create" className="btn btn-primary btn-lg">
-              🎯 Create New Game
-            </Link>
+            {/* Create Game Button positioned on top of image */}
+            <div className="absolute inset-0 flex items-end justify-center pb-20">
+              <Link
+                href="/create"
+                className="btn btn-xl text-xl px-8 py-4 shadow-2xl drop-shadow-2xl text-white"
+                style={{
+                  backgroundColor: "#c53d0a",
+                  borderColor: "#c53d0a",
+                  boxShadow: "0 25px 25px -5px rgba(0, 0, 0, 0.95), 0 0 0 1px rgba(255, 255, 255, 0.1)",
+                }}
+              >
+                ⛏️ Create New Game
+              </Link>
+            </div>
           </div>
 
           {/* Games List */}
           <div className="bg-base-100 rounded-lg p-6 shadow-lg">
             <div className="flex justify-between items-center mb-6">
               <h2 className="text-2xl font-bold">Active Games</h2>
-              <div className="text-sm text-gray-600">{nextGameId && `${Number(nextGameId) - 1} total games`}</div>
+              <div className="text-sm text-gray-600">
+                {nextGameId && `${Number(nextGameId) - 1} total games created`}
+              </div>
             </div>
 
             {loading ? (
@@ -50,13 +59,15 @@ const GameListContent = () => {
               </div>
             ) : nextGameId && Number(nextGameId) > 1 ? (
               <div className="grid gap-4">
-                {Array.from({ length: Number(nextGameId) - 1 }, (_, i) => i + 1).map(gameId => (
-                  <GameCard key={gameId} gameId={gameId} />
-                ))}
+                {Array.from({ length: Number(nextGameId) - 1 }, (_, i) => i + 1)
+                  .reverse()
+                  .map(gameId => (
+                    <GameCard key={gameId} gameId={gameId} />
+                  ))}
               </div>
             ) : (
               <div className="text-center py-8">
-                <p className="text-gray-500 text-lg">No games found</p>
+                <p className="text-gray-500 text-lg">No active games found</p>
                 <p className="text-sm text-gray-400 mt-2">Be the first to create a game!</p>
               </div>
             )}
@@ -72,40 +83,6 @@ const GameListContent = () => {
               </div>
             </div>
           )}
-
-          {/* How it Works */}
-          <div className="bg-base-100 rounded-lg p-6 shadow-lg mt-8">
-            <h2 className="text-2xl font-bold mb-4">How it Works</h2>
-            <div className="grid md:grid-cols-2 gap-6">
-              <div>
-                <h3 className="text-lg font-semibold mb-2">🎯 Create a Game</h3>
-                <p className="text-gray-600">
-                  Set up your own commit-reveal game with custom gamemaster and stake amount. Players join by staking
-                  the required ETH.
-                </p>
-              </div>
-              <div>
-                <h3 className="text-lg font-semibold mb-2">🎮 Join a Game</h3>
-                <p className="text-gray-600">
-                  Browse active games and join by paying the stake amount. Participate in commit-reveal rounds and win
-                  prizes!
-                </p>
-              </div>
-              <div>
-                <h3 className="text-lg font-semibold mb-2">🔐 Commit-Reveal</h3>
-                <p className="text-gray-600">
-                  Gamemasters commit hashes, then reveal them to generate provably fair randomness for determining
-                  winners.
-                </p>
-              </div>
-              <div>
-                <h3 className="text-lg font-semibold mb-2">💰 Win Prizes</h3>
-                <p className="text-gray-600">
-                  Winners receive their share of the total stakes collected from all players who joined the game.
-                </p>
-              </div>
-            </div>
-          </div>
         </div>
       </div>
     </>
@@ -156,11 +133,16 @@ const GameCard = ({ gameId }: { gameId: number }) => {
     );
   }
 
-  // gameInfo is a tuple: [gamemaster, stakeAmount, open, playerCount]
+  // gameInfo is a tuple: [gamemaster, creator, stakeAmount, open, playerCount, hasOpened, hasClosed]
   const gamemaster = gameInfo[0];
-  const stakeAmount = gameInfo[1];
-  const open = gameInfo[2];
-  const playerCount = gameInfo[3];
+  const stakeAmount = gameInfo[2];
+  const open = gameInfo[3];
+  const playerCount = gameInfo[4];
+
+  // Don't render closed games
+  if (!open) {
+    return null;
+  }
 
   return (
     <div className="border border-gray-200 rounded-lg p-4 hover:shadow-lg transition-shadow">
@@ -198,8 +180,7 @@ const GameCard = ({ gameId }: { gameId: number }) => {
         </div>
       </div>
 
-      <div className="flex justify-between items-center pt-3 border-t">
-        <div className="text-sm text-gray-500">Game ID: {gameId}</div>
+      <div className="flex justify-end items-center pt-3 border-t">
         <Link href={`/game/${gameId}`} className="btn btn-sm btn-primary">
           View Game
         </Link>

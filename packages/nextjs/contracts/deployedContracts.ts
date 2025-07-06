@@ -5,410 +5,9 @@
 import { GenericContractsDeclaration } from "~~/utils/scaffold-eth/contract";
 
 const deployedContracts = {
-  8453: {
-    YourContract: {
-      address: "0x69142F0733B2f4b367342Dc1Dc9544BE62c37d6F",
-      abi: [
-        {
-          inputs: [],
-          stateMutability: "nonpayable",
-          type: "constructor",
-        },
-        {
-          anonymous: false,
-          inputs: [],
-          name: "GameClosed",
-          type: "event",
-        },
-        {
-          anonymous: false,
-          inputs: [],
-          name: "GameOpened",
-          type: "event",
-        },
-        {
-          anonymous: false,
-          inputs: [
-            {
-              indexed: true,
-              internalType: "bytes32",
-              name: "committedHash",
-              type: "bytes32",
-            },
-            {
-              indexed: false,
-              internalType: "uint256",
-              name: "nextBlockNumber",
-              type: "uint256",
-            },
-          ],
-          name: "HashCommitted",
-          type: "event",
-        },
-        {
-          anonymous: false,
-          inputs: [
-            {
-              indexed: true,
-              internalType: "bytes32",
-              name: "reveal",
-              type: "bytes32",
-            },
-            {
-              indexed: true,
-              internalType: "bytes32",
-              name: "randomHash",
-              type: "bytes32",
-            },
-          ],
-          name: "HashRevealed",
-          type: "event",
-        },
-        {
-          anonymous: false,
-          inputs: [
-            {
-              indexed: false,
-              internalType: "address[]",
-              name: "winners",
-              type: "address[]",
-            },
-            {
-              indexed: false,
-              internalType: "uint256",
-              name: "amountPerWinner",
-              type: "uint256",
-            },
-          ],
-          name: "PayoutCompleted",
-          type: "event",
-        },
-        {
-          anonymous: false,
-          inputs: [
-            {
-              indexed: true,
-              internalType: "address",
-              name: "player",
-              type: "address",
-            },
-          ],
-          name: "PlayerJoined",
-          type: "event",
-        },
-        {
-          inputs: [],
-          name: "GAMEMASTER",
-          outputs: [
-            {
-              internalType: "address",
-              name: "",
-              type: "address",
-            },
-          ],
-          stateMutability: "view",
-          type: "function",
-        },
-        {
-          inputs: [],
-          name: "STAKE_AMOUNT",
-          outputs: [
-            {
-              internalType: "uint256",
-              name: "",
-              type: "uint256",
-            },
-          ],
-          stateMutability: "view",
-          type: "function",
-        },
-        {
-          inputs: [],
-          name: "closeGame",
-          outputs: [],
-          stateMutability: "nonpayable",
-          type: "function",
-        },
-        {
-          inputs: [],
-          name: "commitBlockNumber",
-          outputs: [
-            {
-              internalType: "uint256",
-              name: "",
-              type: "uint256",
-            },
-          ],
-          stateMutability: "view",
-          type: "function",
-        },
-        {
-          inputs: [
-            {
-              internalType: "bytes32",
-              name: "_hash",
-              type: "bytes32",
-            },
-          ],
-          name: "commitHash",
-          outputs: [],
-          stateMutability: "nonpayable",
-          type: "function",
-        },
-        {
-          inputs: [],
-          name: "committedHash",
-          outputs: [
-            {
-              internalType: "bytes32",
-              name: "",
-              type: "bytes32",
-            },
-          ],
-          stateMutability: "view",
-          type: "function",
-        },
-        {
-          inputs: [],
-          name: "getCommitRevealState",
-          outputs: [
-            {
-              internalType: "bytes32",
-              name: "_committedHash",
-              type: "bytes32",
-            },
-            {
-              internalType: "uint256",
-              name: "_commitBlockNumber",
-              type: "uint256",
-            },
-            {
-              internalType: "bytes32",
-              name: "_revealValue",
-              type: "bytes32",
-            },
-            {
-              internalType: "bytes32",
-              name: "_randomHash",
-              type: "bytes32",
-            },
-            {
-              internalType: "bool",
-              name: "_hasCommitted",
-              type: "bool",
-            },
-            {
-              internalType: "bool",
-              name: "_hasRevealed",
-              type: "bool",
-            },
-          ],
-          stateMutability: "view",
-          type: "function",
-        },
-        {
-          inputs: [],
-          name: "getContractBalance",
-          outputs: [
-            {
-              internalType: "uint256",
-              name: "",
-              type: "uint256",
-            },
-          ],
-          stateMutability: "view",
-          type: "function",
-        },
-        {
-          inputs: [],
-          name: "getPlayerCount",
-          outputs: [
-            {
-              internalType: "uint256",
-              name: "",
-              type: "uint256",
-            },
-          ],
-          stateMutability: "view",
-          type: "function",
-        },
-        {
-          inputs: [],
-          name: "getPlayers",
-          outputs: [
-            {
-              internalType: "address[]",
-              name: "",
-              type: "address[]",
-            },
-          ],
-          stateMutability: "view",
-          type: "function",
-        },
-        {
-          inputs: [],
-          name: "hasCommitted",
-          outputs: [
-            {
-              internalType: "bool",
-              name: "",
-              type: "bool",
-            },
-          ],
-          stateMutability: "view",
-          type: "function",
-        },
-        {
-          inputs: [
-            {
-              internalType: "address",
-              name: "",
-              type: "address",
-            },
-          ],
-          name: "hasJoined",
-          outputs: [
-            {
-              internalType: "bool",
-              name: "",
-              type: "bool",
-            },
-          ],
-          stateMutability: "view",
-          type: "function",
-        },
-        {
-          inputs: [],
-          name: "hasRevealed",
-          outputs: [
-            {
-              internalType: "bool",
-              name: "",
-              type: "bool",
-            },
-          ],
-          stateMutability: "view",
-          type: "function",
-        },
-        {
-          inputs: [],
-          name: "joinGame",
-          outputs: [],
-          stateMutability: "payable",
-          type: "function",
-        },
-        {
-          inputs: [],
-          name: "open",
-          outputs: [
-            {
-              internalType: "bool",
-              name: "",
-              type: "bool",
-            },
-          ],
-          stateMutability: "view",
-          type: "function",
-        },
-        {
-          inputs: [],
-          name: "openGame",
-          outputs: [],
-          stateMutability: "nonpayable",
-          type: "function",
-        },
-        {
-          inputs: [
-            {
-              internalType: "address[]",
-              name: "_winners",
-              type: "address[]",
-            },
-          ],
-          name: "payout",
-          outputs: [],
-          stateMutability: "nonpayable",
-          type: "function",
-        },
-        {
-          inputs: [
-            {
-              internalType: "uint256",
-              name: "",
-              type: "uint256",
-            },
-          ],
-          name: "players",
-          outputs: [
-            {
-              internalType: "address",
-              name: "",
-              type: "address",
-            },
-          ],
-          stateMutability: "view",
-          type: "function",
-        },
-        {
-          inputs: [],
-          name: "randomHash",
-          outputs: [
-            {
-              internalType: "bytes32",
-              name: "",
-              type: "bytes32",
-            },
-          ],
-          stateMutability: "view",
-          type: "function",
-        },
-        {
-          inputs: [],
-          name: "resetCommitReveal",
-          outputs: [],
-          stateMutability: "nonpayable",
-          type: "function",
-        },
-        {
-          inputs: [],
-          name: "resetGame",
-          outputs: [],
-          stateMutability: "nonpayable",
-          type: "function",
-        },
-        {
-          inputs: [
-            {
-              internalType: "bytes32",
-              name: "_reveal",
-              type: "bytes32",
-            },
-          ],
-          name: "revealHash",
-          outputs: [],
-          stateMutability: "nonpayable",
-          type: "function",
-        },
-        {
-          inputs: [],
-          name: "revealValue",
-          outputs: [
-            {
-              internalType: "bytes32",
-              name: "",
-              type: "bytes32",
-            },
-          ],
-          stateMutability: "view",
-          type: "function",
-        },
-      ],
-      inheritedFunctions: {},
-    },
-  },
   31337: {
     YourContract: {
-      address: "0xe6F314143AE46b5b0594Ae7C88e6A39D36964bb7",
+      address: "0xBc3Bf6C2c8f783Cd6A992941477c0aE89111cf2c",
       abi: [
         {
           inputs: [],
@@ -441,6 +40,12 @@ const deployedContracts = {
               indexed: true,
               internalType: "address",
               name: "gamemaster",
+              type: "address",
+            },
+            {
+              indexed: true,
+              internalType: "address",
+              name: "creator",
               type: "address",
             },
             {
@@ -631,6 +236,11 @@ const deployedContracts = {
               type: "address",
             },
             {
+              internalType: "address",
+              name: "creator",
+              type: "address",
+            },
+            {
               internalType: "uint256",
               name: "stakeAmount",
               type: "uint256",
@@ -764,6 +374,11 @@ const deployedContracts = {
             {
               internalType: "address",
               name: "gamemaster",
+              type: "address",
+            },
+            {
+              internalType: "address",
+              name: "creator",
               type: "address",
             },
             {
@@ -910,19 +525,6 @@ const deployedContracts = {
             },
           ],
           stateMutability: "view",
-          type: "function",
-        },
-        {
-          inputs: [
-            {
-              internalType: "uint256",
-              name: "gameId",
-              type: "uint256",
-            },
-          ],
-          name: "openGame",
-          outputs: [],
-          stateMutability: "nonpayable",
           type: "function",
         },
         {

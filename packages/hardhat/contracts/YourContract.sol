@@ -14,6 +14,7 @@ contract YourContract {
     // Game struct to hold all game-specific data
     struct Game {
         address gamemaster;
+        address creator;
         uint256 stakeAmount;
         bool open;
         address[] players;
@@ -42,7 +43,7 @@ contract YourContract {
     mapping(uint256 => Game) public games;
     
     // Events
-    event GameCreated(uint256 indexed gameId, address indexed gamemaster, uint256 stakeAmount);
+    event GameCreated(uint256 indexed gameId, address indexed gamemaster, address indexed creator, uint256 stakeAmount);
     event HashCommitted(uint256 indexed gameId, bytes32 indexed committedHash, uint256 nextBlockNumber);
     event HashRevealed(uint256 indexed gameId, bytes32 indexed reveal, bytes32 indexed randomHash);
     event GameOpened(uint256 indexed gameId);
@@ -62,8 +63,17 @@ contract YourContract {
         _;
     }
 
+    // Modifier: used to ensure only the creator can call functions for a specific game
+    modifier isCreator(uint256 gameId) {
+        require(games[gameId].gamemaster != address(0), "Game does not exist");
+        require(msg.sender == games[gameId].creator, "Not authorized - only creator can call this function");
+        _;
+    }
+
     /**
      * Function to create a new game with specified gamemaster and stake amount
+     * The creator (msg.sender) will be able to close the game
+     * The game will automatically open when the gamemaster commits a hash
      * @param _gamemaster Address of the gamemaster for this game
      * @param _stakeAmount Amount of ETH required to join this game
      * @return gameId The ID of the newly created game
@@ -76,39 +86,24 @@ contract YourContract {
         
         // Initialize the game
         games[gameId].gamemaster = _gamemaster;
+        games[gameId].creator = msg.sender;
         games[gameId].stakeAmount = _stakeAmount;
         games[gameId].open = false;
         // Other fields are automatically initialized to default values
         
         console.log("Game created with ID: %s", gameId);
-        console.log("Gamemaster: %s, Stake: %s", _gamemaster, _stakeAmount);
-        emit GameCreated(gameId, _gamemaster, _stakeAmount);
+        console.log("Gamemaster: %s, Creator: %s, Stake: %s", _gamemaster, msg.sender, _stakeAmount);
+        emit GameCreated(gameId, _gamemaster, msg.sender, _stakeAmount);
         
         return gameId;
     }
 
     /**
-     * Function that opens the game for players to join
-     * Only the gamemaster can call this function
-     * Can only be called once per game (immutable)
-     */
-    function openGame(uint256 gameId) public isGamemaster(gameId) {
-        require(!games[gameId].hasOpened, "Game has already been opened and cannot be opened again");
-        require(!games[gameId].open, "Game is already open");
-        
-        games[gameId].open = true;
-        games[gameId].hasOpened = true;
-        
-        console.log("Game %s opened for players to join", gameId);
-        emit GameOpened(gameId);
-    }
-
-    /**
      * Function that closes the game, preventing new players from joining
-     * Only the gamemaster can call this function
+     * Only the creator can call this function
      * Can only be called once per game and is irreversible (immutable)
      */
-    function closeGame(uint256 gameId) public isGamemaster(gameId) {
+    function closeGame(uint256 gameId) public isCreator(gameId) {
         require(games[gameId].hasOpened, "Game must be opened before it can be closed");
         require(!games[gameId].hasClosed, "Game has already been closed and cannot be closed again");
         require(games[gameId].open, "Game is already closed");
@@ -158,6 +153,7 @@ contract YourContract {
      * Function that allows the gamemaster to commit a hash
      * Records the hash and the next block number for later reveal
      * Can only be called once per game (immutable)
+     * Automatically opens the game for players to join after committing
      *
      * @param gameId The ID of the game
      * @param _hash (bytes32) - the hash to commit
@@ -170,9 +166,15 @@ contract YourContract {
         games[gameId].hasCommitted = true;
         games[gameId].hasRevealed = false;
 
+        // Automatically open the game for players to join
+        games[gameId].open = true;
+        games[gameId].hasOpened = true;
+
         console.log("Hash committed for game %s. Next block number: %s", gameId, games[gameId].commitBlockNumber);
+        console.log("Game %s automatically opened for players to join", gameId);
         
         emit HashCommitted(gameId, _hash, games[gameId].commitBlockNumber);
+        emit GameOpened(gameId);
     }
 
     /**
@@ -297,6 +299,7 @@ contract YourContract {
      */
     function getGameInfo(uint256 gameId) public view returns (
         address gamemaster,
+        address creator,
         uint256 stakeAmount,
         bool open,
         uint256 playerCount,
@@ -306,6 +309,7 @@ contract YourContract {
         require(games[gameId].gamemaster != address(0), "Game does not exist");
         return (
             games[gameId].gamemaster,
+            games[gameId].creator,
             games[gameId].stakeAmount,
             games[gameId].open,
             games[gameId].players.length,

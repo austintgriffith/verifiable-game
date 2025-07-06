@@ -6,6 +6,7 @@ import { SignerWithAddress } from "@nomicfoundation/hardhat-ethers/signers";
 describe("YourContract", function () {
   let yourContract: YourContract;
   let gamemaster: SignerWithAddress;
+  let creator: SignerWithAddress;
   let player1: SignerWithAddress;
   let player2: SignerWithAddress;
   let player3: SignerWithAddress;
@@ -14,7 +15,7 @@ describe("YourContract", function () {
   const HIGHER_STAKE_AMOUNT = ethers.parseEther("0.01");
 
   beforeEach(async () => {
-    [, gamemaster, player1, player2, player3] = await ethers.getSigners();
+    [, gamemaster, creator, player1, player2, player3] = await ethers.getSigners();
 
     const yourContractFactory = await ethers.getContractFactory("YourContract");
     yourContract = (await yourContractFactory.deploy()) as YourContract;
@@ -33,7 +34,7 @@ describe("YourContract", function () {
 
   describe("Game Creation", function () {
     it("Should create a new game", async function () {
-      const tx = await yourContract.createGame(gamemaster.address, STAKE_AMOUNT);
+      const tx = await yourContract.connect(creator).createGame(gamemaster.address, STAKE_AMOUNT);
       const receipt = await tx.wait();
 
       expect(receipt?.logs).to.have.length.greaterThan(0);
@@ -41,33 +42,36 @@ describe("YourContract", function () {
 
       const gameInfo = await yourContract.getGameInfo(1);
       expect(gameInfo.gamemaster).to.equal(gamemaster.address);
+      expect(gameInfo.creator).to.equal(creator.address);
       expect(gameInfo.stakeAmount).to.equal(STAKE_AMOUNT);
       expect(gameInfo.open).to.equal(false);
       expect(gameInfo.playerCount).to.equal(0);
     });
 
     it("Should create multiple games with different settings", async function () {
-      await yourContract.createGame(gamemaster.address, STAKE_AMOUNT);
-      await yourContract.createGame(player1.address, HIGHER_STAKE_AMOUNT);
+      await yourContract.connect(creator).createGame(gamemaster.address, STAKE_AMOUNT);
+      await yourContract.connect(player1).createGame(player2.address, HIGHER_STAKE_AMOUNT);
 
       const game1Info = await yourContract.getGameInfo(1);
       const game2Info = await yourContract.getGameInfo(2);
 
       expect(game1Info.gamemaster).to.equal(gamemaster.address);
+      expect(game1Info.creator).to.equal(creator.address);
       expect(game1Info.stakeAmount).to.equal(STAKE_AMOUNT);
 
-      expect(game2Info.gamemaster).to.equal(player1.address);
+      expect(game2Info.gamemaster).to.equal(player2.address);
+      expect(game2Info.creator).to.equal(player1.address);
       expect(game2Info.stakeAmount).to.equal(HIGHER_STAKE_AMOUNT);
     });
 
     it("Should reject zero address gamemaster", async function () {
-      await expect(yourContract.createGame(ethers.ZeroAddress, STAKE_AMOUNT)).to.be.revertedWith(
+      await expect(yourContract.connect(creator).createGame(ethers.ZeroAddress, STAKE_AMOUNT)).to.be.revertedWith(
         "Gamemaster cannot be zero address",
       );
     });
 
     it("Should reject zero stake amount", async function () {
-      await expect(yourContract.createGame(gamemaster.address, 0)).to.be.revertedWith(
+      await expect(yourContract.connect(creator).createGame(gamemaster.address, 0)).to.be.revertedWith(
         "Stake amount must be greater than 0",
       );
     });
@@ -75,44 +79,42 @@ describe("YourContract", function () {
 
   describe("Game Management", function () {
     beforeEach(async () => {
-      await yourContract.createGame(gamemaster.address, STAKE_AMOUNT);
+      await yourContract.connect(creator).createGame(gamemaster.address, STAKE_AMOUNT);
     });
 
-    it("Should allow gamemaster to open game", async function () {
-      await yourContract.connect(gamemaster).openGame(1);
+    it("Should automatically open game when gamemaster commits", async function () {
+      // Gamemaster commits hash and game should automatically open
+      const secretValue = ethers.randomBytes(32);
+      const hash = ethers.keccak256(secretValue);
+      await yourContract.connect(gamemaster).commitHash(1, hash);
 
       const gameInfo = await yourContract.getGameInfo(1);
       expect(gameInfo.open).to.equal(true);
+      expect(gameInfo.hasOpened).to.equal(true);
     });
 
-    it("Should allow gamemaster to close game", async function () {
-      await yourContract.connect(gamemaster).openGame(1);
-      await yourContract.connect(gamemaster).closeGame(1);
+    it("Should allow creator to close game", async function () {
+      // First, gamemaster must commit (which auto-opens the game)
+      const secretValue = ethers.randomBytes(32);
+      const hash = ethers.keccak256(secretValue);
+      await yourContract.connect(gamemaster).commitHash(1, hash);
+
+      // Close the game
+      await yourContract.connect(creator).closeGame(1);
 
       const gameInfo = await yourContract.getGameInfo(1);
       expect(gameInfo.open).to.equal(false);
-    });
-
-    it("Should reject non-gamemaster opening game", async function () {
-      await expect(yourContract.connect(player1).openGame(1)).to.be.revertedWith(
-        "Not authorized - only gamemaster can call this function",
-      );
-    });
-
-    it("Should reject opening non-existent game", async function () {
-      await expect(yourContract.connect(gamemaster).openGame(999)).to.be.revertedWith("Game does not exist");
-    });
-
-    it("Should reject opening already open game", async function () {
-      await yourContract.connect(gamemaster).openGame(1);
-      await expect(yourContract.connect(gamemaster).openGame(1)).to.be.revertedWith("Game is already open");
     });
   });
 
   describe("Player Joining", function () {
     beforeEach(async () => {
-      await yourContract.createGame(gamemaster.address, STAKE_AMOUNT);
-      await yourContract.connect(gamemaster).openGame(1);
+      await yourContract.connect(creator).createGame(gamemaster.address, STAKE_AMOUNT);
+
+      // Gamemaster must commit (which automatically opens the game)
+      const secretValue = ethers.randomBytes(32);
+      const hash = ethers.keccak256(secretValue);
+      await yourContract.connect(gamemaster).commitHash(1, hash);
     });
 
     it("Should allow player to join game", async function () {
@@ -144,7 +146,7 @@ describe("YourContract", function () {
     });
 
     it("Should reject joining closed game", async function () {
-      await yourContract.connect(gamemaster).closeGame(1);
+      await yourContract.connect(creator).closeGame(1);
       await expect(yourContract.connect(player1).joinGame(1, { value: STAKE_AMOUNT })).to.be.revertedWith(
         "Game is not open for joining",
       );
@@ -166,7 +168,7 @@ describe("YourContract", function () {
 
   describe("Commit-Reveal System", function () {
     beforeEach(async () => {
-      await yourContract.createGame(gamemaster.address, STAKE_AMOUNT);
+      await yourContract.connect(creator).createGame(gamemaster.address, STAKE_AMOUNT);
     });
 
     it("Should allow gamemaster to commit hash", async function () {
@@ -222,8 +224,13 @@ describe("YourContract", function () {
 
   describe("Payout", function () {
     beforeEach(async () => {
-      await yourContract.createGame(gamemaster.address, STAKE_AMOUNT);
-      await yourContract.connect(gamemaster).openGame(1);
+      await yourContract.connect(creator).createGame(gamemaster.address, STAKE_AMOUNT);
+
+      // Gamemaster must commit (which automatically opens the game)
+      const secretValue = ethers.randomBytes(32);
+      const hash = ethers.keccak256(secretValue);
+      await yourContract.connect(gamemaster).commitHash(1, hash);
+
       await yourContract.connect(player1).joinGame(1, { value: STAKE_AMOUNT });
       await yourContract.connect(player2).joinGame(1, { value: STAKE_AMOUNT });
       await yourContract.connect(player3).joinGame(1, { value: STAKE_AMOUNT });
