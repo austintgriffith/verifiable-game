@@ -11,7 +11,7 @@ export const metadata = getMetadata({
 
 export const viewport = {
   width: "device-width",
-  initialScale: 1,
+  initialScale: 0.85,
   maximumScale: 1,
   userScalable: false,
   viewportFit: "cover",
