@@ -1211,6 +1211,7 @@ const GamePageContent = () => {
       console.log("🛑 Clearing polling interval:", interval);
       clearInterval(interval);
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [hasClosed, hasPaidOut, isAuthenticated, jwtToken, isPlayer, fetchPlayerMap, fetchGameStatus, fetchAllPlayers]); // Added all missing dependencies
 
   // Fetch player map when authentication and player status change
@@ -1273,7 +1274,7 @@ const GamePageContent = () => {
         return newDiscovered;
       });
     }
-  }, [playerMap, heavyDebug]);
+  }, [playerMap]);
 
   useEffect(() => {
     if (heavyDebug) {
@@ -1307,7 +1308,8 @@ const GamePageContent = () => {
       console.log("🔥 [HEAVY DEBUG] All state variables reset to initial values");
       console.log("🔥 [HEAVY DEBUG] ===== END COMPONENT MOUNT / GAME ID CHANGE =====");
     }
-  }, [gameId, heavyDebug, playerMap, gameStatus, allPlayers, isAuthenticated]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [gameId]);
 
   if (!gameInfo) {
     return (
