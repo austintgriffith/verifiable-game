@@ -111,6 +111,9 @@ const GamePageContent = () => {
   // Timer state
   const [timeRemaining, setTimeRemaining] = useState<number | null>(null);
 
+  // Track recent moves to prevent polling conflicts
+  const [recentMoveTimestamp, setRecentMoveTimestamp] = useState<number | null>(null);
+
   // Radar/Map state - track discovered tiles
   const [discoveredTiles, setDiscoveredTiles] = useState<Map<string, number | string>>(new Map());
 
@@ -604,53 +607,6 @@ const GamePageContent = () => {
     }
   };
 
-  // Fetch player's map view
-  const fetchPlayerMap = useCallback(async () => {
-    console.log("🗺️ Fetching player map...");
-    console.log("Can play:", canPlay);
-    console.log("Has JWT token:", !!jwtToken);
-
-    if (!canPlay || !jwtToken) {
-      console.log("❌ Cannot fetch map - missing requirements");
-      return;
-    }
-
-    try {
-      const response = await fetch(`${API_BASE}/map`, {
-        headers: {
-          Authorization: `Bearer ${jwtToken}`,
-        },
-      });
-
-      console.log("📥 Map response status:", response.status);
-      const data = await response.json();
-      console.log("📥 Map response data:", data);
-
-      if (data.success) {
-        console.log("✅ Map data received successfully");
-        setPlayerMap(data);
-
-        // Extract timer info from map response
-        if (typeof data.timeRemaining === "number") {
-          setTimeRemaining(data.timeRemaining);
-        }
-      } else if (response.status === 401 || response.status === 403) {
-        console.log("🔒 Token expired or invalid");
-        setIsAuthenticated(false);
-        setJwtToken(null);
-        const tokenKey = `gameJwtToken_${API_BASE}_${gameId}`;
-        if (typeof window !== "undefined") {
-          sessionStorage.removeItem(tokenKey);
-        }
-        setError("Authentication expired. Please sign in again.");
-      } else {
-        console.log("❌ Map fetch failed:", data);
-      }
-    } catch (err) {
-      console.error("💥 Failed to fetch player map:", err);
-    }
-  }, [canPlay, jwtToken, gameId]); // Stable dependencies
-
   // Move player
   const movePlayer = async (direction: string) => {
     console.log("🎮 Move player attempt:", {
@@ -698,6 +654,11 @@ const GamePageContent = () => {
 
       if (data.success) {
         console.log("✅ Move successful, updating player map");
+
+        // Mark this as a recent move to prevent polling conflicts
+        const moveTime = Date.now();
+        setRecentMoveTimestamp(moveTime);
+
         setPlayerMap(prevMap =>
           prevMap
             ? {
@@ -718,6 +679,11 @@ const GamePageContent = () => {
         }
 
         fetchAllPlayers();
+
+        // Clear the recent move flag after 5 seconds to allow polling to resume
+        setTimeout(() => {
+          setRecentMoveTimestamp(prev => (prev === moveTime ? null : prev));
+        }, 5000);
       } else if (response.status === 401 || response.status === 403) {
         console.log("🔒 Move failed - authentication expired");
         setIsAuthenticated(false);
@@ -785,6 +751,11 @@ const GamePageContent = () => {
 
       if (data.success) {
         console.log("✅ Mine successful, updating player map");
+
+        // Mark this as a recent move to prevent polling conflicts
+        const moveTime = Date.now();
+        setRecentMoveTimestamp(moveTime);
+
         setPlayerMap(prevMap =>
           prevMap
             ? {
@@ -804,6 +775,11 @@ const GamePageContent = () => {
         }
 
         fetchAllPlayers();
+
+        // Clear the recent move flag after 5 seconds to allow polling to resume
+        setTimeout(() => {
+          setRecentMoveTimestamp(prev => (prev === moveTime ? null : prev));
+        }, 5000);
       } else if (response.status === 401 || response.status === 403) {
         console.log("🔒 Mine failed - authentication expired");
         setIsAuthenticated(false);
@@ -824,6 +800,59 @@ const GamePageContent = () => {
       setLoading(false);
     }
   };
+
+  // Fetch player's map view
+  const fetchPlayerMap = useCallback(async () => {
+    console.log("🗺️ Fetching player map...");
+    console.log("Can play:", canPlay);
+    console.log("Has JWT token:", !!jwtToken);
+
+    if (!canPlay || !jwtToken) {
+      console.log("❌ Cannot fetch map - missing requirements");
+      return;
+    }
+
+    // Skip polling if there was a recent move to prevent overwriting fresh data
+    if (recentMoveTimestamp && Date.now() - recentMoveTimestamp < 5000) {
+      console.log("⏸️ Skipping map fetch - recent move detected");
+      return;
+    }
+
+    try {
+      const response = await fetch(`${API_BASE}/map`, {
+        headers: {
+          Authorization: `Bearer ${jwtToken}`,
+        },
+      });
+
+      console.log("📥 Map response status:", response.status);
+      const data = await response.json();
+      console.log("📥 Map response data:", data);
+
+      if (data.success) {
+        console.log("✅ Map data received successfully");
+        setPlayerMap(data);
+
+        // Extract timer info from map response
+        if (typeof data.timeRemaining === "number") {
+          setTimeRemaining(data.timeRemaining);
+        }
+      } else if (response.status === 401 || response.status === 403) {
+        console.log("🔒 Token expired or invalid");
+        setIsAuthenticated(false);
+        setJwtToken(null);
+        const tokenKey = `gameJwtToken_${API_BASE}_${gameId}`;
+        if (typeof window !== "undefined") {
+          sessionStorage.removeItem(tokenKey);
+        }
+        setError("Authentication expired. Please sign in again.");
+      } else {
+        console.log("❌ Map fetch failed:", data);
+      }
+    } catch (err) {
+      console.error("💥 Failed to fetch player map:", err);
+    }
+  }, [canPlay, jwtToken, gameId, recentMoveTimestamp]); // Added recentMoveTimestamp dependency
 
   // Helper functions
   const getTileColor = (tileType: number | string) => {
