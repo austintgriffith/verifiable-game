@@ -23,6 +23,7 @@ export const getMetadata = ({
       template: titleTemplate,
     },
     description: description,
+    manifest: "/manifest.json",
     openGraph: {
       title: {
         default: title,
@@ -45,6 +46,15 @@ export const getMetadata = ({
     },
     icons: {
       icon: [{ url: "/favicon.png", sizes: "32x32", type: "image/png" }],
+      apple: [{ url: "/miner.png", sizes: "180x180", type: "image/png" }],
+    },
+    appleWebApp: {
+      capable: true,
+      statusBarStyle: "default",
+      title: title,
+    },
+    other: {
+      "mobile-web-app-capable": "yes",
     },
   };
 };
