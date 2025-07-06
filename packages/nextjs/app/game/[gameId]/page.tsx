@@ -634,8 +634,8 @@ const GamePageContent = () => {
       return;
     }
 
-    if (hasClosed || hasPaidOut) {
-      console.log("❌ Cannot move - game is completed");
+    if (hasPaidOut) {
+      console.log("❌ Cannot move - game is completed (payout done)");
       setError("Game is completed. No more moves allowed.");
       return;
     }
@@ -737,8 +737,8 @@ const GamePageContent = () => {
       return;
     }
 
-    if (hasClosed || hasPaidOut) {
-      console.log("❌ Cannot mine - game is completed");
+    if (hasPaidOut) {
+      console.log("❌ Cannot mine - game is completed (payout done)");
       setError("Game is completed. No more mining allowed.");
       return;
     }
