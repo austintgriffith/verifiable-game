@@ -7,6 +7,7 @@ import { AppProgressBar as ProgressBar } from "next-nprogress-bar";
 import { useTheme } from "next-themes";
 import { Toaster } from "react-hot-toast";
 import { WagmiProvider } from "wagmi";
+import { ClientOnlyWrapper } from "~~/components/ClientOnlyWrapper";
 import { Footer } from "~~/components/Footer";
 import { Header } from "~~/components/Header";
 import { PWAInstaller } from "~~/components/PWAInstaller";
@@ -25,7 +26,9 @@ const ScaffoldEthApp = ({ children }: { children: React.ReactNode }) => {
         <Footer />
       </div>
       <Toaster />
-      <PWAInstaller />
+      <ClientOnlyWrapper>
+        <PWAInstaller />
+      </ClientOnlyWrapper>
     </>
   );
 };

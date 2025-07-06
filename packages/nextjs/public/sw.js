@@ -1,4 +1,4 @@
-const CACHE_NAME = "cryptohunter-v1";
+const CACHE_NAME = "cryptohunter-v2";
 const OFFLINE_URL = "/offline";
 
 const urlsToCache = ["/", "/offline", "/favicon.png", "/miner.png", "/logo.svg", "/manifest.json"];

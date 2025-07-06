@@ -1,6 +1,14 @@
+"use client";
+
 import Image from "next/image";
 
 export default function OfflinePage() {
+  const handleTryAgain = () => {
+    if (typeof window !== "undefined") {
+      window.location.reload();
+    }
+  };
+
   return (
     <div className="flex flex-col items-center justify-center min-h-screen p-4 text-center">
       <div className="max-w-md mx-auto">
@@ -11,7 +19,7 @@ export default function OfflinePage() {
           content!
         </p>
         <button
-          onClick={() => window.location.reload()}
+          onClick={handleTryAgain}
           className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2 rounded-lg transition-colors"
         >
           Try Again

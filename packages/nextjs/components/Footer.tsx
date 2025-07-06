@@ -3,6 +3,7 @@ import Link from "next/link";
 import { hardhat } from "viem/chains";
 import { CurrencyDollarIcon, MagnifyingGlassIcon } from "@heroicons/react/24/outline";
 import { HeartIcon } from "@heroicons/react/24/outline";
+import { ClientOnlyWrapper } from "~~/components/ClientOnlyWrapper";
 import { PWAStatus } from "~~/components/PWAStatus";
 import { SwitchTheme } from "~~/components/SwitchTheme";
 import { BuidlGuidlLogo } from "~~/components/assets/BuidlGuidlLogo";
@@ -80,7 +81,9 @@ export const Footer = () => {
                 </a>
               </div>
             </div>
-            <PWAStatus />
+            <ClientOnlyWrapper>
+              <PWAStatus />
+            </ClientOnlyWrapper>
           </div>
         </ul>
       </div>
