@@ -525,7 +525,6 @@ const GamePageContent = () => {
     if (heavyDebug) {
       console.log("🔥 [HEAVY DEBUG] fetchGameStatus() called");
       console.log("🔥 [HEAVY DEBUG] Expected Game ID:", gameId);
-      console.log("🔥 [HEAVY DEBUG] Current gameStatus state:", gameStatus);
     }
 
     console.log("📊 Fetching game status...");
@@ -579,14 +578,13 @@ const GamePageContent = () => {
       }
       // Silently retry - don't show error to user when server is temporarily down
     }
-  }, [gameId, gameStatus]);
+  }, [gameId]);
 
   // Fetch all players
   const fetchAllPlayers = useCallback(async () => {
     if (heavyDebug) {
       console.log("🔥 [HEAVY DEBUG] fetchAllPlayers() called");
       console.log("🔥 [HEAVY DEBUG] Expected Game ID:", gameId);
-      console.log("🔥 [HEAVY DEBUG] Current allPlayers state:", allPlayers);
     }
 
     console.log("👥 Fetching all players...");
@@ -645,7 +643,7 @@ const GamePageContent = () => {
         console.log("🔥 [HEAVY DEBUG] fetchAllPlayers error:", err);
       }
     }
-  }, [gameId, allPlayers]);
+  }, [gameId]);
 
   // Move player
   const movePlayer = async (direction: string) => {
@@ -952,7 +950,6 @@ const GamePageContent = () => {
     if (heavyDebug) {
       console.log("🔥 [HEAVY DEBUG] fetchPlayerMap() called");
       console.log("🔥 [HEAVY DEBUG] Expected Game ID:", gameId);
-      console.log("🔥 [HEAVY DEBUG] Current playerMap state:", playerMap);
       console.log("🔥 [HEAVY DEBUG] Can play:", canPlay);
       console.log("🔥 [HEAVY DEBUG] Has JWT token:", !!jwtToken);
       console.log("🔥 [HEAVY DEBUG] recentMoveTimestamp:", recentMoveTimestamp);
@@ -1023,16 +1020,12 @@ const GamePageContent = () => {
           console.log("🔥 [HEAVY DEBUG] ===== LOADING PLAYER STATE FROM SERVER =====");
           console.log("🔥 [HEAVY DEBUG] About to call setPlayerMap with:", data);
           console.log("🔥 [HEAVY DEBUG] 📍 POSITION:");
-          console.log("🔥 [HEAVY DEBUG]   - Previous position:", playerMap?.position);
           console.log("🔥 [HEAVY DEBUG]   - New position:", data.position);
           console.log("🔥 [HEAVY DEBUG] 🎯 SCORE:");
-          console.log("🔥 [HEAVY DEBUG]   - Previous score:", playerMap?.score);
           console.log("🔥 [HEAVY DEBUG]   - New score:", data.score);
           console.log("🔥 [HEAVY DEBUG] 🚶 MOVES:");
-          console.log("🔥 [HEAVY DEBUG]   - Previous moves remaining:", playerMap?.movesRemaining);
           console.log("🔥 [HEAVY DEBUG]   - New moves remaining:", data.movesRemaining);
           console.log("🔥 [HEAVY DEBUG] ⛏️ MINES:");
-          console.log("🔥 [HEAVY DEBUG]   - Previous mines remaining:", playerMap?.minesRemaining);
           console.log("🔥 [HEAVY DEBUG]   - New mines remaining:", data.minesRemaining);
           console.log("🔥 [HEAVY DEBUG] 🗺️ MAP VIEW:");
           console.log("🔥 [HEAVY DEBUG]   - Map size:", data.mapSize);
@@ -1082,7 +1075,7 @@ const GamePageContent = () => {
         console.log("🔥 [HEAVY DEBUG] fetchPlayerMap error:", err);
       }
     }
-  }, [canPlay, jwtToken, gameId, recentMoveTimestamp, playerMap]); // Added recentMoveTimestamp dependency
+  }, [canPlay, jwtToken, gameId, recentMoveTimestamp]); // Removed playerMap dependency
 
   // Helper functions
   const getTileColor = (tileType: number | string) => {
@@ -1211,8 +1204,7 @@ const GamePageContent = () => {
       console.log("🛑 Clearing polling interval:", interval);
       clearInterval(interval);
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [hasClosed, hasPaidOut, isAuthenticated, jwtToken, isPlayer, fetchPlayerMap, fetchGameStatus, fetchAllPlayers]); // Added all missing dependencies
+  }, [hasClosed, hasPaidOut, isAuthenticated, jwtToken, isPlayer, fetchPlayerMap, fetchGameStatus, fetchAllPlayers]);
 
   // Fetch player map when authentication and player status change
   useEffect(() => {
