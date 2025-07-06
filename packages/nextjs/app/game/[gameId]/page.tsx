@@ -556,7 +556,7 @@ const GamePageContent = () => {
   }, [gameId]);
 
   // Game API functions
-  const fetchGameStatus = async () => {
+  const fetchGameStatus = useCallback(async () => {
     console.log("📊 Fetching game status...");
     console.log("🎯 EXPECTED GAME ID:", gameId);
     try {
@@ -584,10 +584,10 @@ const GamePageContent = () => {
       console.error("💥 Failed to fetch game status:", err);
       // Silently retry - don't show error to user when server is temporarily down
     }
-  };
+  }, [gameId]);
 
   // Fetch all players
-  const fetchAllPlayers = async () => {
+  const fetchAllPlayers = useCallback(async () => {
     console.log("👥 Fetching all players...");
     console.log("🎯 EXPECTED GAME ID:", gameId);
     try {
@@ -617,7 +617,7 @@ const GamePageContent = () => {
     } catch (err) {
       console.error("💥 Failed to fetch players:", err);
     }
-  };
+  }, [gameId]);
 
   // Move player
   const movePlayer = async (direction: string) => {
@@ -998,7 +998,7 @@ const GamePageContent = () => {
       console.log("🛑 Clearing polling interval:", interval);
       clearInterval(interval);
     };
-  }, [hasClosed, hasPaidOut, isAuthenticated, jwtToken, isPlayer, fetchPlayerMap]); // Added fetchPlayerMap
+  }, [hasClosed, hasPaidOut, isAuthenticated, jwtToken, isPlayer, fetchPlayerMap, fetchGameStatus, fetchAllPlayers]); // Added all missing dependencies
 
   // Fetch player map when authentication and player status change
   useEffect(() => {
