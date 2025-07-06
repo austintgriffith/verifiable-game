@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import type { NextPage } from "next";
 import { QRCodeSVG } from "qrcode.react";
@@ -605,7 +605,7 @@ const GamePageContent = () => {
   };
 
   // Fetch player's map view
-  const fetchPlayerMap = async () => {
+  const fetchPlayerMap = useCallback(async () => {
     console.log("🗺️ Fetching player map...");
     console.log("Can play:", canPlay);
     console.log("Has JWT token:", !!jwtToken);
@@ -649,7 +649,7 @@ const GamePageContent = () => {
     } catch (err) {
       console.error("💥 Failed to fetch player map:", err);
     }
-  };
+  }, [canPlay, jwtToken, gameId]); // Stable dependencies
 
   // Move player
   const movePlayer = async (direction: string) => {
@@ -938,7 +938,7 @@ const GamePageContent = () => {
       console.log("🛑 Clearing polling interval:", interval);
       clearInterval(interval);
     };
-  }, [hasClosed, hasPaidOut, isAuthenticated, jwtToken, isPlayer]); // Removed unstable dependencies
+  }, [hasClosed, hasPaidOut, isAuthenticated, jwtToken, isPlayer, fetchPlayerMap]); // Added fetchPlayerMap
 
   // Fetch player map when authentication and player status change
   useEffect(() => {
@@ -947,7 +947,7 @@ const GamePageContent = () => {
       console.log("🔄 Triggering initial map fetch...");
       fetchPlayerMap();
     }
-  }, [canPlay, jwtToken]); // Removed fetchPlayerMap dependency to prevent infinite loops
+  }, [canPlay, jwtToken, fetchPlayerMap]); // Added fetchPlayerMap back with useCallback
 
   // Update discovered tiles when player map changes
   useEffect(() => {
