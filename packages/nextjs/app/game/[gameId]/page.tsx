@@ -325,9 +325,9 @@ const GamePageContent = () => {
     try {
       // Step 1: Get the message to sign
       console.log("📝 Step 1: Fetching register message from server...");
-      console.log("Request URL:", `${API_BASE}/register`);
+      console.log("Request URL:", `${API_BASE}/register?gameId=${gameId}`);
 
-      const registerResponse = await fetch(`${API_BASE}/register`);
+      const registerResponse = await fetch(`${API_BASE}/register?gameId=${gameId}`);
       console.log("Register response status:", registerResponse.status);
       console.log("Register response headers:", Object.fromEntries(registerResponse.headers.entries()));
 
