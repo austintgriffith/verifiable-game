@@ -27,7 +27,7 @@ const GameListContent = () => {
           {/* Cover Image with Button on top */}
           <div className="text-center mb-8 relative">
             <Image
-              src="/cover.png"
+              src="/cover.jpg"
               alt="Game Cover"
               className="w-full max-w-2xl h-auto mx-auto"
               width={800}
@@ -39,11 +39,13 @@ const GameListContent = () => {
             <div className="absolute inset-0 flex items-end justify-center pb-20">
               <Link
                 href="/create"
-                className="btn btn-xl text-xl px-8 py-4 shadow-2xl drop-shadow-2xl text-white"
+                className="btn btn-xl text-xl px-8 py-4 shadow-2xl drop-shadow-2xl text-white hover:animate-none transition-all duration-300 hover:scale-110"
                 style={{
-                  backgroundColor: "#c53d0a",
-                  borderColor: "#c53d0a",
-                  boxShadow: "0 25px 25px -5px rgba(0, 0, 0, 0.95), 0 0 0 1px rgba(255, 255, 255, 0.1)",
+                  backgroundColor: "#ff6b35",
+                  borderColor: "#ff6b35",
+                  boxShadow:
+                    "0 25px 25px -5px rgba(0, 0, 0, 0.95), 0 0 0 1px rgba(255, 255, 255, 0.1), 0 0 20px rgba(255, 107, 53, 0.5)",
+                  animation: "scalePulse 2s ease-in-out infinite",
                 }}
               >
                 ⛏️ Create New Game

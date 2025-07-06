@@ -157,7 +157,13 @@ const CreateGameContent = () => {
               {/* Create Button */}
               <div className="flex flex-col space-y-4">
                 <button
-                  className={`btn btn-primary btn-lg w-full ${loading ? "loading" : ""}`}
+                  className={`btn btn-lg w-full text-white transition-all duration-300 hover:scale-105 ${loading ? "loading" : ""}`}
+                  style={{
+                    backgroundColor: "#ff6b35",
+                    borderColor: "#ff6b35",
+                    boxShadow:
+                      "0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05), 0 0 15px rgba(255, 107, 53, 0.3)",
+                  }}
                   onClick={createGame}
                   disabled={loading || !connectedAddress}
                 >

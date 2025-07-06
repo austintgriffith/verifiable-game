@@ -5,9 +5,9 @@
 import { GenericContractsDeclaration } from "~~/utils/scaffold-eth/contract";
 
 const deployedContracts = {
-  31337: {
+  8453: {
     YourContract: {
-      address: "0xBc3Bf6C2c8f783Cd6A992941477c0aE89111cf2c",
+      address: "0x386fDD490A393D41fE3D633C49bd769c6A976994",
       abi: [
         {
           inputs: [],
@@ -21,6 +21,12 @@ const deployedContracts = {
               indexed: true,
               internalType: "uint256",
               name: "gameId",
+              type: "uint256",
+            },
+            {
+              indexed: false,
+              internalType: "uint256",
+              name: "startTime",
               type: "uint256",
             },
           ],
@@ -166,6 +172,70 @@ const deployedContracts = {
           type: "event",
         },
         {
+          anonymous: false,
+          inputs: [
+            {
+              indexed: true,
+              internalType: "uint256",
+              name: "gameId",
+              type: "uint256",
+            },
+            {
+              indexed: true,
+              internalType: "address",
+              name: "player",
+              type: "address",
+            },
+            {
+              indexed: false,
+              internalType: "uint256",
+              name: "amount",
+              type: "uint256",
+            },
+          ],
+          name: "PlayerWithdrew",
+          type: "event",
+        },
+        {
+          anonymous: false,
+          inputs: [
+            {
+              indexed: true,
+              internalType: "uint256",
+              name: "gameId",
+              type: "uint256",
+            },
+          ],
+          name: "WithdrawalPeriodStarted",
+          type: "event",
+        },
+        {
+          inputs: [],
+          name: "CREATOR_TIMEOUT",
+          outputs: [
+            {
+              internalType: "uint256",
+              name: "",
+              type: "uint256",
+            },
+          ],
+          stateMutability: "view",
+          type: "function",
+        },
+        {
+          inputs: [],
+          name: "PAYOUT_TIMEOUT",
+          outputs: [
+            {
+              internalType: "uint256",
+              name: "",
+              type: "uint256",
+            },
+          ],
+          stateMutability: "view",
+          type: "function",
+        },
+        {
           inputs: [
             {
               internalType: "uint256",
@@ -300,6 +370,21 @@ const deployedContracts = {
               name: "hasPaidOut",
               type: "bool",
             },
+            {
+              internalType: "uint256",
+              name: "startTime",
+              type: "uint256",
+            },
+            {
+              internalType: "uint256",
+              name: "openTime",
+              type: "uint256",
+            },
+            {
+              internalType: "bool",
+              name: "canWithdraw",
+              type: "bool",
+            },
           ],
           stateMutability: "view",
           type: "function",
@@ -351,6 +436,25 @@ const deployedContracts = {
         {
           inputs: [],
           name: "getContractBalance",
+          outputs: [
+            {
+              internalType: "uint256",
+              name: "",
+              type: "uint256",
+            },
+          ],
+          stateMutability: "view",
+          type: "function",
+        },
+        {
+          inputs: [
+            {
+              internalType: "uint256",
+              name: "gameId",
+              type: "uint256",
+            },
+          ],
+          name: "getGameBalance",
           outputs: [
             {
               internalType: "uint256",
@@ -484,6 +588,40 @@ const deployedContracts = {
               name: "gameId",
               type: "uint256",
             },
+          ],
+          name: "getWithdrawalInfo",
+          outputs: [
+            {
+              internalType: "uint256",
+              name: "startTime",
+              type: "uint256",
+            },
+            {
+              internalType: "bool",
+              name: "canWithdraw",
+              type: "bool",
+            },
+            {
+              internalType: "bool",
+              name: "canWithdrawNow",
+              type: "bool",
+            },
+            {
+              internalType: "uint256",
+              name: "timeUntilWithdrawal",
+              type: "uint256",
+            },
+          ],
+          stateMutability: "view",
+          type: "function",
+        },
+        {
+          inputs: [
+            {
+              internalType: "uint256",
+              name: "gameId",
+              type: "uint256",
+            },
             {
               internalType: "address",
               name: "player",
@@ -496,6 +634,54 @@ const deployedContracts = {
               internalType: "bool",
               name: "",
               type: "bool",
+            },
+          ],
+          stateMutability: "view",
+          type: "function",
+        },
+        {
+          inputs: [
+            {
+              internalType: "uint256",
+              name: "gameId",
+              type: "uint256",
+            },
+            {
+              internalType: "address",
+              name: "player",
+              type: "address",
+            },
+          ],
+          name: "hasPlayerWithdrawn",
+          outputs: [
+            {
+              internalType: "bool",
+              name: "",
+              type: "bool",
+            },
+          ],
+          stateMutability: "view",
+          type: "function",
+        },
+        {
+          inputs: [
+            {
+              internalType: "uint256",
+              name: "gameId",
+              type: "uint256",
+            },
+          ],
+          name: "isGameAbandoned",
+          outputs: [
+            {
+              internalType: "bool",
+              name: "abandoned",
+              type: "bool",
+            },
+            {
+              internalType: "uint256",
+              name: "timeUntilAbandonmentTimeout",
+              type: "uint256",
             },
           ],
           stateMutability: "view",
@@ -541,6 +727,780 @@ const deployedContracts = {
             },
           ],
           name: "payout",
+          outputs: [],
+          stateMutability: "nonpayable",
+          type: "function",
+        },
+        {
+          inputs: [
+            {
+              internalType: "uint256",
+              name: "gameId",
+              type: "uint256",
+            },
+          ],
+          name: "playerWithdraw",
+          outputs: [],
+          stateMutability: "nonpayable",
+          type: "function",
+        },
+        {
+          inputs: [
+            {
+              internalType: "uint256",
+              name: "gameId",
+              type: "uint256",
+            },
+            {
+              internalType: "bytes32",
+              name: "_reveal",
+              type: "bytes32",
+            },
+          ],
+          name: "revealHash",
+          outputs: [],
+          stateMutability: "nonpayable",
+          type: "function",
+        },
+      ],
+      inheritedFunctions: {},
+    },
+  },
+  31337: {
+    YourContract: {
+      address: "0x8215aE307AD23f482838B99bFD4869F901720360",
+      abi: [
+        {
+          inputs: [],
+          stateMutability: "nonpayable",
+          type: "constructor",
+        },
+        {
+          anonymous: false,
+          inputs: [
+            {
+              indexed: true,
+              internalType: "uint256",
+              name: "gameId",
+              type: "uint256",
+            },
+            {
+              indexed: false,
+              internalType: "uint256",
+              name: "startTime",
+              type: "uint256",
+            },
+          ],
+          name: "GameClosed",
+          type: "event",
+        },
+        {
+          anonymous: false,
+          inputs: [
+            {
+              indexed: true,
+              internalType: "uint256",
+              name: "gameId",
+              type: "uint256",
+            },
+            {
+              indexed: true,
+              internalType: "address",
+              name: "gamemaster",
+              type: "address",
+            },
+            {
+              indexed: true,
+              internalType: "address",
+              name: "creator",
+              type: "address",
+            },
+            {
+              indexed: false,
+              internalType: "uint256",
+              name: "stakeAmount",
+              type: "uint256",
+            },
+          ],
+          name: "GameCreated",
+          type: "event",
+        },
+        {
+          anonymous: false,
+          inputs: [
+            {
+              indexed: true,
+              internalType: "uint256",
+              name: "gameId",
+              type: "uint256",
+            },
+          ],
+          name: "GameOpened",
+          type: "event",
+        },
+        {
+          anonymous: false,
+          inputs: [
+            {
+              indexed: true,
+              internalType: "uint256",
+              name: "gameId",
+              type: "uint256",
+            },
+            {
+              indexed: true,
+              internalType: "bytes32",
+              name: "committedHash",
+              type: "bytes32",
+            },
+            {
+              indexed: false,
+              internalType: "uint256",
+              name: "nextBlockNumber",
+              type: "uint256",
+            },
+          ],
+          name: "HashCommitted",
+          type: "event",
+        },
+        {
+          anonymous: false,
+          inputs: [
+            {
+              indexed: true,
+              internalType: "uint256",
+              name: "gameId",
+              type: "uint256",
+            },
+            {
+              indexed: true,
+              internalType: "bytes32",
+              name: "reveal",
+              type: "bytes32",
+            },
+            {
+              indexed: true,
+              internalType: "bytes32",
+              name: "randomHash",
+              type: "bytes32",
+            },
+          ],
+          name: "HashRevealed",
+          type: "event",
+        },
+        {
+          anonymous: false,
+          inputs: [
+            {
+              indexed: true,
+              internalType: "uint256",
+              name: "gameId",
+              type: "uint256",
+            },
+            {
+              indexed: false,
+              internalType: "address[]",
+              name: "winners",
+              type: "address[]",
+            },
+            {
+              indexed: false,
+              internalType: "uint256",
+              name: "amountPerWinner",
+              type: "uint256",
+            },
+          ],
+          name: "PayoutCompleted",
+          type: "event",
+        },
+        {
+          anonymous: false,
+          inputs: [
+            {
+              indexed: true,
+              internalType: "uint256",
+              name: "gameId",
+              type: "uint256",
+            },
+            {
+              indexed: true,
+              internalType: "address",
+              name: "player",
+              type: "address",
+            },
+          ],
+          name: "PlayerJoined",
+          type: "event",
+        },
+        {
+          anonymous: false,
+          inputs: [
+            {
+              indexed: true,
+              internalType: "uint256",
+              name: "gameId",
+              type: "uint256",
+            },
+            {
+              indexed: true,
+              internalType: "address",
+              name: "player",
+              type: "address",
+            },
+            {
+              indexed: false,
+              internalType: "uint256",
+              name: "amount",
+              type: "uint256",
+            },
+          ],
+          name: "PlayerWithdrew",
+          type: "event",
+        },
+        {
+          anonymous: false,
+          inputs: [
+            {
+              indexed: true,
+              internalType: "uint256",
+              name: "gameId",
+              type: "uint256",
+            },
+          ],
+          name: "WithdrawalPeriodStarted",
+          type: "event",
+        },
+        {
+          inputs: [],
+          name: "CREATOR_TIMEOUT",
+          outputs: [
+            {
+              internalType: "uint256",
+              name: "",
+              type: "uint256",
+            },
+          ],
+          stateMutability: "view",
+          type: "function",
+        },
+        {
+          inputs: [],
+          name: "PAYOUT_TIMEOUT",
+          outputs: [
+            {
+              internalType: "uint256",
+              name: "",
+              type: "uint256",
+            },
+          ],
+          stateMutability: "view",
+          type: "function",
+        },
+        {
+          inputs: [
+            {
+              internalType: "uint256",
+              name: "gameId",
+              type: "uint256",
+            },
+          ],
+          name: "closeGame",
+          outputs: [],
+          stateMutability: "nonpayable",
+          type: "function",
+        },
+        {
+          inputs: [
+            {
+              internalType: "uint256",
+              name: "gameId",
+              type: "uint256",
+            },
+            {
+              internalType: "bytes32",
+              name: "_hash",
+              type: "bytes32",
+            },
+          ],
+          name: "commitHash",
+          outputs: [],
+          stateMutability: "nonpayable",
+          type: "function",
+        },
+        {
+          inputs: [
+            {
+              internalType: "address",
+              name: "_gamemaster",
+              type: "address",
+            },
+            {
+              internalType: "uint256",
+              name: "_stakeAmount",
+              type: "uint256",
+            },
+          ],
+          name: "createGame",
+          outputs: [
+            {
+              internalType: "uint256",
+              name: "",
+              type: "uint256",
+            },
+          ],
+          stateMutability: "nonpayable",
+          type: "function",
+        },
+        {
+          inputs: [
+            {
+              internalType: "uint256",
+              name: "",
+              type: "uint256",
+            },
+          ],
+          name: "games",
+          outputs: [
+            {
+              internalType: "address",
+              name: "gamemaster",
+              type: "address",
+            },
+            {
+              internalType: "address",
+              name: "creator",
+              type: "address",
+            },
+            {
+              internalType: "uint256",
+              name: "stakeAmount",
+              type: "uint256",
+            },
+            {
+              internalType: "bool",
+              name: "open",
+              type: "bool",
+            },
+            {
+              internalType: "bool",
+              name: "hasOpened",
+              type: "bool",
+            },
+            {
+              internalType: "bool",
+              name: "hasClosed",
+              type: "bool",
+            },
+            {
+              internalType: "bytes32",
+              name: "committedHash",
+              type: "bytes32",
+            },
+            {
+              internalType: "uint256",
+              name: "commitBlockNumber",
+              type: "uint256",
+            },
+            {
+              internalType: "bytes32",
+              name: "revealValue",
+              type: "bytes32",
+            },
+            {
+              internalType: "bytes32",
+              name: "randomHash",
+              type: "bytes32",
+            },
+            {
+              internalType: "bool",
+              name: "hasCommitted",
+              type: "bool",
+            },
+            {
+              internalType: "bool",
+              name: "hasRevealed",
+              type: "bool",
+            },
+            {
+              internalType: "uint256",
+              name: "payoutAmount",
+              type: "uint256",
+            },
+            {
+              internalType: "bool",
+              name: "hasPaidOut",
+              type: "bool",
+            },
+            {
+              internalType: "uint256",
+              name: "startTime",
+              type: "uint256",
+            },
+            {
+              internalType: "uint256",
+              name: "openTime",
+              type: "uint256",
+            },
+            {
+              internalType: "bool",
+              name: "canWithdraw",
+              type: "bool",
+            },
+          ],
+          stateMutability: "view",
+          type: "function",
+        },
+        {
+          inputs: [
+            {
+              internalType: "uint256",
+              name: "gameId",
+              type: "uint256",
+            },
+          ],
+          name: "getCommitRevealState",
+          outputs: [
+            {
+              internalType: "bytes32",
+              name: "_committedHash",
+              type: "bytes32",
+            },
+            {
+              internalType: "uint256",
+              name: "_commitBlockNumber",
+              type: "uint256",
+            },
+            {
+              internalType: "bytes32",
+              name: "_revealValue",
+              type: "bytes32",
+            },
+            {
+              internalType: "bytes32",
+              name: "_randomHash",
+              type: "bytes32",
+            },
+            {
+              internalType: "bool",
+              name: "_hasCommitted",
+              type: "bool",
+            },
+            {
+              internalType: "bool",
+              name: "_hasRevealed",
+              type: "bool",
+            },
+          ],
+          stateMutability: "view",
+          type: "function",
+        },
+        {
+          inputs: [],
+          name: "getContractBalance",
+          outputs: [
+            {
+              internalType: "uint256",
+              name: "",
+              type: "uint256",
+            },
+          ],
+          stateMutability: "view",
+          type: "function",
+        },
+        {
+          inputs: [
+            {
+              internalType: "uint256",
+              name: "gameId",
+              type: "uint256",
+            },
+          ],
+          name: "getGameBalance",
+          outputs: [
+            {
+              internalType: "uint256",
+              name: "",
+              type: "uint256",
+            },
+          ],
+          stateMutability: "view",
+          type: "function",
+        },
+        {
+          inputs: [
+            {
+              internalType: "uint256",
+              name: "gameId",
+              type: "uint256",
+            },
+          ],
+          name: "getGameInfo",
+          outputs: [
+            {
+              internalType: "address",
+              name: "gamemaster",
+              type: "address",
+            },
+            {
+              internalType: "address",
+              name: "creator",
+              type: "address",
+            },
+            {
+              internalType: "uint256",
+              name: "stakeAmount",
+              type: "uint256",
+            },
+            {
+              internalType: "bool",
+              name: "open",
+              type: "bool",
+            },
+            {
+              internalType: "uint256",
+              name: "playerCount",
+              type: "uint256",
+            },
+            {
+              internalType: "bool",
+              name: "hasOpened",
+              type: "bool",
+            },
+            {
+              internalType: "bool",
+              name: "hasClosed",
+              type: "bool",
+            },
+          ],
+          stateMutability: "view",
+          type: "function",
+        },
+        {
+          inputs: [
+            {
+              internalType: "uint256",
+              name: "gameId",
+              type: "uint256",
+            },
+          ],
+          name: "getPayoutInfo",
+          outputs: [
+            {
+              internalType: "address[]",
+              name: "winners",
+              type: "address[]",
+            },
+            {
+              internalType: "uint256",
+              name: "payoutAmount",
+              type: "uint256",
+            },
+            {
+              internalType: "bool",
+              name: "hasPaidOut",
+              type: "bool",
+            },
+          ],
+          stateMutability: "view",
+          type: "function",
+        },
+        {
+          inputs: [
+            {
+              internalType: "uint256",
+              name: "gameId",
+              type: "uint256",
+            },
+          ],
+          name: "getPlayerCount",
+          outputs: [
+            {
+              internalType: "uint256",
+              name: "",
+              type: "uint256",
+            },
+          ],
+          stateMutability: "view",
+          type: "function",
+        },
+        {
+          inputs: [
+            {
+              internalType: "uint256",
+              name: "gameId",
+              type: "uint256",
+            },
+          ],
+          name: "getPlayers",
+          outputs: [
+            {
+              internalType: "address[]",
+              name: "",
+              type: "address[]",
+            },
+          ],
+          stateMutability: "view",
+          type: "function",
+        },
+        {
+          inputs: [
+            {
+              internalType: "uint256",
+              name: "gameId",
+              type: "uint256",
+            },
+          ],
+          name: "getWithdrawalInfo",
+          outputs: [
+            {
+              internalType: "uint256",
+              name: "startTime",
+              type: "uint256",
+            },
+            {
+              internalType: "bool",
+              name: "canWithdraw",
+              type: "bool",
+            },
+            {
+              internalType: "bool",
+              name: "canWithdrawNow",
+              type: "bool",
+            },
+            {
+              internalType: "uint256",
+              name: "timeUntilWithdrawal",
+              type: "uint256",
+            },
+          ],
+          stateMutability: "view",
+          type: "function",
+        },
+        {
+          inputs: [
+            {
+              internalType: "uint256",
+              name: "gameId",
+              type: "uint256",
+            },
+            {
+              internalType: "address",
+              name: "player",
+              type: "address",
+            },
+          ],
+          name: "hasPlayerJoined",
+          outputs: [
+            {
+              internalType: "bool",
+              name: "",
+              type: "bool",
+            },
+          ],
+          stateMutability: "view",
+          type: "function",
+        },
+        {
+          inputs: [
+            {
+              internalType: "uint256",
+              name: "gameId",
+              type: "uint256",
+            },
+            {
+              internalType: "address",
+              name: "player",
+              type: "address",
+            },
+          ],
+          name: "hasPlayerWithdrawn",
+          outputs: [
+            {
+              internalType: "bool",
+              name: "",
+              type: "bool",
+            },
+          ],
+          stateMutability: "view",
+          type: "function",
+        },
+        {
+          inputs: [
+            {
+              internalType: "uint256",
+              name: "gameId",
+              type: "uint256",
+            },
+          ],
+          name: "isGameAbandoned",
+          outputs: [
+            {
+              internalType: "bool",
+              name: "abandoned",
+              type: "bool",
+            },
+            {
+              internalType: "uint256",
+              name: "timeUntilAbandonmentTimeout",
+              type: "uint256",
+            },
+          ],
+          stateMutability: "view",
+          type: "function",
+        },
+        {
+          inputs: [
+            {
+              internalType: "uint256",
+              name: "gameId",
+              type: "uint256",
+            },
+          ],
+          name: "joinGame",
+          outputs: [],
+          stateMutability: "payable",
+          type: "function",
+        },
+        {
+          inputs: [],
+          name: "nextGameId",
+          outputs: [
+            {
+              internalType: "uint256",
+              name: "",
+              type: "uint256",
+            },
+          ],
+          stateMutability: "view",
+          type: "function",
+        },
+        {
+          inputs: [
+            {
+              internalType: "uint256",
+              name: "gameId",
+              type: "uint256",
+            },
+            {
+              internalType: "address[]",
+              name: "_winners",
+              type: "address[]",
+            },
+          ],
+          name: "payout",
+          outputs: [],
+          stateMutability: "nonpayable",
+          type: "function",
+        },
+        {
+          inputs: [
+            {
+              internalType: "uint256",
+              name: "gameId",
+              type: "uint256",
+            },
+          ],
+          name: "playerWithdraw",
           outputs: [],
           stateMutability: "nonpayable",
           type: "function",

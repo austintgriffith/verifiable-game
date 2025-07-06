@@ -1,15 +1,20 @@
 //SPDX-License-Identifier: MIT
 pragma solidity >=0.8.0 <0.9.0;
 
-// Useful for debugging. Remove when deploying to a live network.
-import "hardhat/console.sol";
+/*
+    ___                                 _                 _  _                         _                             ____                     
+  ,"___".   _ ___   _    _    _ ___    FJ_      ____     FJ  L]    _    _    _ ___    FJ_      ____     _ ___       F ___J  _    _    _ ___   
+  FJ---L]  J '__ ",J |  | L  J '__ J  J  _|    F __ J   J |__| L  J |  | L  J '__ J  J  _|    F __ J   J '__ ",    J |___: J |  | L  J '__ J  
+ J |   LJ  | |__|-J| |  | |  | |--| | | |-'   | |--| |  |  __  |  | |  | |  | |__| | | |-'   | _____J  | |__|-J    | _____|| |  | |  | |__| | 
+ | \___--. F L  `-'F L__J J  F L__J J F |__-. F L__J J  F L__J J  F L__J J  F L  J J F |__-. F L___--. F L  `-'__  F |____JF L__J J  F L  J J 
+ J\_____/FJ__L     )-____  LJ  _____/L\_____/J\______/FJ__L  J__LJ\____,__LJ__L  J__L\_____/J\______/FJ__L    J__LJ__F    J\____,__LJ__L  J__L
+  J_____F |__L    J\______/F|_J_____F J_____F J______F |__L  J__| J____,__F|__L  J__|J_____F J______F |__L    |__||__|     J____,__F|__L  J__|
+                   J______F L_J                                                                                                               
 
-/**
- * A smart contract that implements a commit-reveal system for generating randomness
- * Supports multiple games with different gamemasters and stake amounts
- * Players can join games by staking the required amount when the game is open
- * @author BuidlGuidl
- */
+CryptoHunter.fun -- a verifiable ethereum game with a gamemaster backend 
+
+*/
+
 contract YourContract {
     // Game struct to hold all game-specific data
     struct Game {
@@ -36,20 +41,34 @@ contract YourContract {
         address[] winners;
         uint256 payoutAmount;
         bool hasPaidOut;
+        
+        // Timeout and Withdrawal System
+        uint256 startTime;
+        uint256 openTime; // When the game was opened (commitHash called)
+        mapping(address => bool) hasWithdrawn;
+        bool canWithdraw;
     }
     
     // Global state variables
     uint256 public nextGameId = 1;
     mapping(uint256 => Game) public games;
     
+    // Timeout constant (5 minutes in seconds)
+    uint256 public constant PAYOUT_TIMEOUT = 300;
+    
+    // Creator timeout constant (2.5 minutes in seconds)
+    uint256 public constant CREATOR_TIMEOUT = 150;
+    
     // Events
     event GameCreated(uint256 indexed gameId, address indexed gamemaster, address indexed creator, uint256 stakeAmount);
     event HashCommitted(uint256 indexed gameId, bytes32 indexed committedHash, uint256 nextBlockNumber);
     event HashRevealed(uint256 indexed gameId, bytes32 indexed reveal, bytes32 indexed randomHash);
     event GameOpened(uint256 indexed gameId);
-    event GameClosed(uint256 indexed gameId);
+    event GameClosed(uint256 indexed gameId, uint256 startTime);
     event PlayerJoined(uint256 indexed gameId, address indexed player);
     event PayoutCompleted(uint256 indexed gameId, address[] winners, uint256 amountPerWinner);
+    event PlayerWithdrew(uint256 indexed gameId, address indexed player, uint256 amount);
+    event WithdrawalPeriodStarted(uint256 indexed gameId);
 
     // Constructor
     constructor() {
@@ -91,8 +110,6 @@ contract YourContract {
         games[gameId].open = false;
         // Other fields are automatically initialized to default values
         
-        console.log("Game created with ID: %s", gameId);
-        console.log("Gamemaster: %s, Creator: %s, Stake: %s", _gamemaster, msg.sender, _stakeAmount);
         emit GameCreated(gameId, _gamemaster, msg.sender, _stakeAmount);
         
         return gameId;
@@ -100,19 +117,30 @@ contract YourContract {
 
     /**
      * Function that closes the game, preventing new players from joining
-     * Only the creator can call this function
+     * Only the creator can call this function, UNLESS the creator has abandoned the game
+     * After 2.5 minutes and at least one player has joined, anyone can close an abandoned game
      * Can only be called once per game and is irreversible (immutable)
+     * Sets the start time for the timeout mechanism
      */
-    function closeGame(uint256 gameId) public isCreator(gameId) {
+    function closeGame(uint256 gameId) public {
+        require(games[gameId].gamemaster != address(0), "Game does not exist");
         require(games[gameId].hasOpened, "Game must be opened before it can be closed");
         require(!games[gameId].hasClosed, "Game has already been closed and cannot be closed again");
         require(games[gameId].open, "Game is already closed");
         
+        // Check if caller is authorized to close the game
+        bool isCreator = msg.sender == games[gameId].creator;
+        bool isAbandoned = games[gameId].openTime > 0 && 
+                          block.timestamp >= games[gameId].openTime + CREATOR_TIMEOUT &&
+                          games[gameId].players.length > 0;
+        
+        require(isCreator || isAbandoned, "Not authorized - only creator can close game, or anyone after 2.5 minutes if creator abandoned");
+        
         games[gameId].open = false;
         games[gameId].hasClosed = true;
+        games[gameId].startTime = block.timestamp; // Set start time when game closes
         
-        console.log("Game %s closed. Total players: %s", gameId, games[gameId].players.length);
-        emit GameClosed(gameId);
+        emit GameClosed(gameId, block.timestamp);
     }
 
     /**
@@ -129,7 +157,6 @@ contract YourContract {
         games[gameId].players.push(msg.sender);
         games[gameId].hasJoined[msg.sender] = true;
         
-        console.log("Player %s joined game %s", msg.sender, gameId);
         emit PlayerJoined(gameId, msg.sender);
     }
 
@@ -169,10 +196,8 @@ contract YourContract {
         // Automatically open the game for players to join
         games[gameId].open = true;
         games[gameId].hasOpened = true;
+        games[gameId].openTime = block.timestamp; // Track when game was opened
 
-        console.log("Hash committed for game %s. Next block number: %s", gameId, games[gameId].commitBlockNumber);
-        console.log("Game %s automatically opened for players to join", gameId);
-        
         emit HashCommitted(gameId, _hash, games[gameId].commitBlockNumber);
         emit GameOpened(gameId);
     }
@@ -205,8 +230,6 @@ contract YourContract {
         games[gameId].randomHash = newRandomHash;
         games[gameId].hasRevealed = true;
 
-        console.log("Hash revealed and random hash generated for game %s", gameId);
-        
         emit HashRevealed(gameId, _reveal, newRandomHash);
     }
 
@@ -243,11 +266,11 @@ contract YourContract {
         require(_winners.length > 0, "Must provide at least one winner address");
         require(games[gameId].players.length > 0, "No players in the game");
         require(!games[gameId].hasPaidOut, "Game has already been paid out");
+        require(!games[gameId].canWithdraw, "Players have already started withdrawing - payout no longer available");
         
         // Calculate the total prize pool for this specific game
         uint256 gamePrizePool = games[gameId].stakeAmount * games[gameId].players.length;
         require(gamePrizePool > 0, "No prize pool available for this game");
-        require(address(this).balance >= gamePrizePool, "Contract doesn't have enough funds");
         
         // Calculate gamemaster's 1% cut
         uint256 gamemasterCut = gamePrizePool / 100; // 1% of the total pot
@@ -256,12 +279,6 @@ contract YourContract {
         uint256 winnersPool = gamePrizePool - gamemasterCut;
         uint256 amountPerWinner = winnersPool / _winners.length;
         require(amountPerWinner > 0, "Payout amount per winner must be greater than 0");
-        
-        console.log("Paying out ETH for game %s", gameId);
-        console.log("Game prize pool: %s ETH", gamePrizePool);
-        console.log("Gamemaster cut (1%%): %s ETH", gamemasterCut);
-        console.log("Winners pool (99%%): %s ETH", winnersPool);
-        console.log("Amount per winner: %s ETH", amountPerWinner);
         
         // Store winners and payout info in contract state
         for (uint256 i = 0; i < _winners.length; i++) {
@@ -274,14 +291,11 @@ contract YourContract {
         // Send gamemaster their 1% cut first
         (bool gmSuccess, ) = payable(games[gameId].gamemaster).call{value: gamemasterCut}("");
         require(gmSuccess, "Failed to send payout to gamemaster");
-        console.log("Sent %s ETH to gamemaster: %s", gamemasterCut, games[gameId].gamemaster);
         
         // Send payout to each winner
         for (uint256 i = 0; i < _winners.length; i++) {
             (bool success, ) = payable(_winners[i]).call{value: amountPerWinner}("");
             require(success, "Failed to send payout to winner");
-            
-            console.log("Sent %s ETH to winner: %s", amountPerWinner, _winners[i]);
         }
         
         emit PayoutCompleted(gameId, _winners, amountPerWinner);
@@ -292,6 +306,14 @@ contract YourContract {
      */
     function getContractBalance() public view returns (uint256) {
         return address(this).balance;
+    }
+
+    /**
+     * Function to get the balance for a specific game
+     */
+    function getGameBalance(uint256 gameId) public view returns (uint256) {
+        require(games[gameId].gamemaster != address(0), "Game does not exist");
+        return games[gameId].stakeAmount * games[gameId].players.length;
     }
 
     /**
@@ -319,6 +341,28 @@ contract YourContract {
     }
 
     /**
+     * Function to check if a game has been abandoned by its creator
+     */
+    function isGameAbandoned(uint256 gameId) public view returns (
+        bool abandoned,
+        uint256 timeUntilAbandonmentTimeout
+    ) {
+        require(games[gameId].gamemaster != address(0), "Game does not exist");
+        
+        bool isAbandoned = games[gameId].openTime > 0 && 
+                          block.timestamp >= games[gameId].openTime + CREATOR_TIMEOUT &&
+                          games[gameId].players.length > 0 &&
+                          games[gameId].open; // Still open means creator hasn't closed it
+        
+        uint256 timeUntil = 0;
+        if (games[gameId].openTime > 0 && block.timestamp < games[gameId].openTime + CREATOR_TIMEOUT) {
+            timeUntil = games[gameId].openTime + CREATOR_TIMEOUT - block.timestamp;
+        }
+        
+        return (isAbandoned, timeUntil);
+    }
+
+    /**
      * Function to check if a player has joined a specific game
      */
     function hasPlayerJoined(uint256 gameId, address player) public view returns (bool) {
@@ -340,5 +384,87 @@ contract YourContract {
             games[gameId].payoutAmount,
             games[gameId].hasPaidOut
         );
+    }
+
+    /**
+     * Function to check if a player has withdrawn from a specific game
+     */
+    function hasPlayerWithdrawn(uint256 gameId, address player) public view returns (bool) {
+        require(games[gameId].gamemaster != address(0), "Game does not exist");
+        return games[gameId].hasWithdrawn[player];
+    }
+
+
+
+    /**
+     * Function to get withdrawal information for a game
+     */
+    function getWithdrawalInfo(uint256 gameId) public view returns (
+        uint256 startTime,
+        bool canWithdraw,
+        bool canWithdrawNow,
+        uint256 timeUntilWithdrawal
+    ) {
+        require(games[gameId].gamemaster != address(0), "Game does not exist");
+        
+        uint256 withdrawalTime = games[gameId].startTime + PAYOUT_TIMEOUT;
+        bool canWithdrawNow = games[gameId].canWithdraw || 
+                             (games[gameId].hasClosed && 
+                              games[gameId].startTime > 0 && 
+                              block.timestamp >= withdrawalTime && 
+                              !games[gameId].hasPaidOut);
+        
+        uint256 timeUntil = 0;
+        if (games[gameId].startTime > 0 && block.timestamp < withdrawalTime) {
+            timeUntil = withdrawalTime - block.timestamp;
+        }
+        
+        return (
+            games[gameId].startTime,
+            games[gameId].canWithdraw,
+            canWithdrawNow,
+            timeUntil
+        );
+    }
+
+    /**
+     * Function that allows players to withdraw their stake if the game hasn't been paid out within 5 minutes
+     * Can only be called once per player per game
+     * First person to call this after timeout sets hasPaidOut to true to prevent normal payout
+     * 
+     * @param gameId The ID of the game to withdraw from
+     */
+    function playerWithdraw(uint256 gameId) public {
+        require(games[gameId].gamemaster != address(0), "Game does not exist");
+        require(games[gameId].hasClosed, "Game must be closed before withdrawal");
+        require(games[gameId].hasJoined[msg.sender], "Player did not join this game");
+        require(!games[gameId].hasWithdrawn[msg.sender], "Player has already withdrawn from this game");
+        require(games[gameId].startTime > 0, "Game has no start time set");
+
+        // Check if withdrawals can happen
+        bool timeoutReached = block.timestamp >= games[gameId].startTime + PAYOUT_TIMEOUT;
+        require(
+            games[gameId].canWithdraw || (timeoutReached && !games[gameId].hasPaidOut),
+            "Withdrawal not available - either timeout not reached or game already paid out"
+        );
+
+        // If this is the first withdrawal, set the flags
+        if (!games[gameId].canWithdraw) {
+            games[gameId].canWithdraw = true;
+            games[gameId].hasPaidOut = true; // Prevent normal payout
+            emit WithdrawalPeriodStarted(gameId);
+        }
+
+        // Calculate withdrawal amount (player's stake)
+        uint256 withdrawalAmount = games[gameId].stakeAmount;
+
+        // Mark player as withdrawn
+        games[gameId].hasWithdrawn[msg.sender] = true;
+
+        // Send the stake back to the player
+        (bool success, ) = payable(msg.sender).call{value: withdrawalAmount}("");
+        require(success, "Failed to send withdrawal to player");
+
+        emit PlayerWithdrew(gameId, msg.sender, withdrawalAmount);
     }
 }

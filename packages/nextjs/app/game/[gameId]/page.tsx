@@ -12,45 +12,52 @@ import { Address } from "~~/components/scaffold-eth";
 import { useScaffoldReadContract, useScaffoldWriteContract } from "~~/hooks/scaffold-eth";
 import { useWatchBalance } from "~~/hooks/scaffold-eth/useWatchBalance";
 
-//const API_BASE = "https://slop.computer:8000";
-const API_BASE = "http://localhost:8000";
+const API_BASE = "https://slop.computer:8000";
+//const API_BASE = "http://localhost:8000";
 
 // Types for the game API responses
 interface GameStatus {
   success: boolean;
+  gameId: string;
+  activeGames: string[];
   gameLoaded: boolean;
   mapSize: number;
   totalPlayers: number;
   players: string[];
-  revealSeed: string;
   serverTime: string;
-  open?: boolean; // Whether the game is open for joining
+  timer: {
+    active: boolean;
+    duration: number;
+    timeRemaining: number;
+    timeElapsed: number;
+    startTime: number;
+  };
 }
 
 interface MapTile {
-  tile: number;
+  tile: number | string;
   player: boolean;
+  coordinates: { x: number; y: number };
 }
 
 interface MapResponse {
   success: boolean;
   player: string;
-  localView: (MapTile | null)[][];
+  localView: MapTile[][];
   position: { x: number; y: number };
   mapSize: number;
-  score?: number;
-  movesRemaining?: number;
-  minesRemaining?: number;
+  score: number;
+  movesRemaining: number;
+  minesRemaining: number;
+  timeRemaining: number;
   legend: Record<string, string>;
 }
 
 interface PlayerInfo {
   address: string;
-  position: { x: number; y: number };
-  tile: number;
-  score?: number;
-  movesRemaining?: number;
-  minesRemaining?: number;
+  score: number;
+  movesRemaining: number;
+  minesRemaining: number;
 }
 
 interface RegisterResponse {
@@ -71,6 +78,7 @@ interface PlayersResponse {
   success: boolean;
   players: PlayerInfo[];
   count: number;
+  timeRemaining?: number;
 }
 
 const GamePageContent = () => {
@@ -91,8 +99,20 @@ const GamePageContent = () => {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [authLoading, setAuthLoading] = useState(false);
 
+  // Join game debounce state
+  const [joinGameLoading, setJoinGameLoading] = useState(false);
+
+  // Start game debounce state
+  const [startGameLoading, setStartGameLoading] = useState(false);
+
   // Payout event state
   const [showConfetti, setShowConfetti] = useState(false);
+
+  // Timer state
+  const [timeRemaining, setTimeRemaining] = useState<number | null>(null);
+
+  // Radar/Map state - track discovered tiles
+  const [discoveredTiles, setDiscoveredTiles] = useState<Map<string, number | string>>(new Map());
 
   // Watch balance to check if user has ETH
   const { data: balance } = useWatchBalance({
@@ -127,6 +147,27 @@ const GamePageContent = () => {
     args: [BigInt(gameId)],
   });
 
+  // Read abandonment state
+  const { data: abandonmentInfo } = useScaffoldReadContract({
+    contractName: "YourContract",
+    functionName: "isGameAbandoned",
+    args: [BigInt(gameId)],
+  });
+
+  // Read withdrawal info
+  const { data: withdrawalInfo } = useScaffoldReadContract({
+    contractName: "YourContract",
+    functionName: "getWithdrawalInfo",
+    args: [BigInt(gameId)],
+  });
+
+  // Check if current player has already withdrawn
+  const { data: hasWithdrawn } = useScaffoldReadContract({
+    contractName: "YourContract",
+    functionName: "hasPlayerWithdrawn",
+    args: [BigInt(gameId), connectedAddress || "0x0000000000000000000000000000000000000000"],
+  });
+
   // Contract write functions
   const { writeContractAsync: writeYourContractAsync } = useScaffoldWriteContract({
     contractName: "YourContract",
@@ -153,10 +194,20 @@ const GamePageContent = () => {
   const hasCommitted = commitRevealState?.[4] || false;
   const hasRevealed = commitRevealState?.[5] || false;
 
+  // Abandonment state derived from contract data
+  const isAbandoned = abandonmentInfo?.[0] || false;
+  const timeUntilAbandonmentTimeout = abandonmentInfo?.[1] || 0n;
+
+  // Withdrawal state derived from contract data
+  const withdrawalStartTime = withdrawalInfo?.[0] || 0n;
+  const canWithdraw = withdrawalInfo?.[1] || false;
+  const canWithdrawNow = withdrawalInfo?.[2] || false;
+  const timeUntilWithdrawal = withdrawalInfo?.[3] || 0n;
+
   const hasEth = balance && balance.value > 0n;
   const isPlayer = connectedAddress && contractPlayers?.includes(connectedAddress);
   const canPlay = isPlayer && isAuthenticated;
-  const gameIsOpen = open || gameStatus?.open; // Use contract data as primary source, fallback to server data
+  const gameIsOpen = open; // Use contract data as primary source
   const isCreator = connectedAddress && creator && connectedAddress.toLowerCase() === creator.toLowerCase();
 
   // Process payout state from contract
@@ -209,6 +260,14 @@ const GamePageContent = () => {
     console.log("  - Has Paid Out:", hasPaidOut);
     console.log("  - Winners:", winners);
     console.log("  - Payout Amount:", payoutAmount);
+    console.log("  - Is Abandoned:", isAbandoned);
+    console.log("  - Time Until Abandonment:", timeUntilAbandonmentTimeout);
+    console.log("  - Withdrawal Start Time:", withdrawalStartTime);
+    console.log("  - Can Withdraw:", canWithdraw);
+    console.log("  - Can Withdraw Now:", canWithdrawNow);
+    console.log("  - Time Until Withdrawal:", timeUntilWithdrawal);
+    console.log("  - Game Time Remaining:", timeRemaining);
+    console.log("  - Has Player Withdrawn:", hasWithdrawn);
   }, [
     connectedAddress,
     gameId,
@@ -226,6 +285,14 @@ const GamePageContent = () => {
     hasPaidOut,
     winners,
     payoutAmount,
+    isAbandoned,
+    timeUntilAbandonmentTimeout,
+    withdrawalStartTime,
+    canWithdraw,
+    canWithdrawNow,
+    timeUntilWithdrawal,
+    timeRemaining,
+    hasWithdrawn,
   ]);
 
   // Authentication functions
@@ -365,7 +432,11 @@ const GamePageContent = () => {
       return;
     }
 
-    setLoading(true);
+    if (joinGameLoading) {
+      return; // Prevent multiple clicks during debounce period
+    }
+
+    setJoinGameLoading(true);
     setError(null);
 
     try {
@@ -382,7 +453,10 @@ const GamePageContent = () => {
       console.error("💥 Failed to join game:", err);
       setError("Failed to join game. Please try again.");
     } finally {
-      setLoading(false);
+      // Keep the debounce state for 5 seconds to prevent multiple clicks
+      setTimeout(() => {
+        setJoinGameLoading(false);
+      }, 5000);
     }
   };
 
@@ -393,12 +467,16 @@ const GamePageContent = () => {
       return;
     }
 
-    if (!isCreator) {
-      setError("Only the game creator can close the game");
+    if (!isCreator && !isAbandoned) {
+      setError("Only the game creator can close the game, or anyone after the creator abandons it");
       return;
     }
 
-    setLoading(true);
+    if (startGameLoading) {
+      return; // Prevent multiple clicks during debounce period
+    }
+
+    setStartGameLoading(true);
     setError(null);
 
     try {
@@ -411,6 +489,44 @@ const GamePageContent = () => {
     } catch (err) {
       console.error("💥 Failed to close game:", err);
       setError("Failed to close game. Please try again.");
+    } finally {
+      // Keep the debounce state for 5 seconds to prevent multiple clicks
+      setTimeout(() => {
+        setStartGameLoading(false);
+      }, 5000);
+    }
+  };
+
+  // Withdraw function (for players when gamemaster abandons)
+  const withdrawStake = async () => {
+    if (!connectedAddress) {
+      setError("Please connect your wallet first");
+      return;
+    }
+
+    if (!isPlayer) {
+      setError("Only players can withdraw their stakes");
+      return;
+    }
+
+    if (!canWithdrawNow) {
+      setError("Withdrawal not available yet");
+      return;
+    }
+
+    setLoading(true);
+    setError(null);
+
+    try {
+      console.log("💰 Attempting to withdraw stake...");
+      await writeYourContractAsync({
+        functionName: "playerWithdraw",
+        args: [BigInt(gameId)],
+      });
+      console.log("✅ Successfully withdrew stake!");
+    } catch (err) {
+      console.error("💥 Failed to withdraw stake:", err);
+      setError("Failed to withdraw stake. Please try again.");
     } finally {
       setLoading(false);
     }
@@ -448,6 +564,12 @@ const GamePageContent = () => {
       console.log("Status response data:", data);
 
       setGameStatus(data);
+
+      // Extract timer info from status response
+      if (data.timer && typeof data.timer.timeRemaining === "number") {
+        setTimeRemaining(data.timer.timeRemaining);
+      }
+
       console.log("✅ Game status updated");
     } catch (err) {
       console.error("💥 Failed to fetch game status:", err);
@@ -469,6 +591,11 @@ const GamePageContent = () => {
       if (data.success) {
         console.log("✅ Players data updated:", data.players.length, "players");
         setAllPlayers(data.players);
+
+        // Extract timer info from players response
+        if (typeof (data as any).timeRemaining === "number") {
+          setTimeRemaining((data as any).timeRemaining);
+        }
       } else {
         console.log("❌ Players request unsuccessful:", data);
       }
@@ -501,6 +628,11 @@ const GamePageContent = () => {
       if (data.success) {
         console.log("✅ Map data received successfully");
         setPlayerMap(data);
+
+        // Extract timer info from map response
+        if (typeof data.timeRemaining === "number") {
+          setTimeRemaining(data.timeRemaining);
+        }
       } else if (response.status === 401 || response.status === 403) {
         console.log("🔒 Token expired or invalid");
         setIsAuthenticated(false);
@@ -519,6 +651,12 @@ const GamePageContent = () => {
   // Move player
   const movePlayer = async (direction: string) => {
     if (!canPlay || !jwtToken) return;
+
+    // Check if timer has expired
+    if (timeRemaining !== null && timeRemaining <= 0) {
+      setError("Time expired! Game over.");
+      return;
+    }
 
     setLoading(true);
     setError(null);
@@ -545,9 +683,16 @@ const GamePageContent = () => {
                 score: data.score,
                 movesRemaining: data.movesRemaining,
                 minesRemaining: data.minesRemaining,
+                timeRemaining: data.timeRemaining,
               }
             : null,
         );
+
+        // Extract timer info from move response
+        if (typeof data.timeRemaining === "number") {
+          setTimeRemaining(data.timeRemaining);
+        }
+
         fetchAllPlayers();
       } else if (response.status === 401 || response.status === 403) {
         setIsAuthenticated(false);
@@ -571,6 +716,12 @@ const GamePageContent = () => {
   // Mine at current position
   const minePlayer = async () => {
     if (!canPlay || !jwtToken) return;
+
+    // Check if timer has expired
+    if (timeRemaining !== null && timeRemaining <= 0) {
+      setError("Time expired! Game over.");
+      return;
+    }
 
     setLoading(true);
     setError(null);
@@ -596,9 +747,16 @@ const GamePageContent = () => {
                 score: data.totalScore,
                 movesRemaining: data.movesRemaining,
                 minesRemaining: data.minesRemaining,
+                timeRemaining: data.timeRemaining,
               }
             : null,
         );
+
+        // Extract timer info from mine response
+        if (typeof data.timeRemaining === "number") {
+          setTimeRemaining(data.timeRemaining);
+        }
+
         fetchAllPlayers();
       } else if (response.status === 401 || response.status === 403) {
         setIsAuthenticated(false);
@@ -620,16 +778,68 @@ const GamePageContent = () => {
   };
 
   // Helper functions
-  const getTileColor = (tileType: number) => {
+  const getTileColor = (tileType: number | string) => {
+    if (typeof tileType === "string") {
+      switch (tileType) {
+        case "X":
+          return "bg-yellow-300"; // Special tile (bright gold)
+        case "0":
+          return "bg-gray-300"; // Depleted
+        case "1":
+          return "bg-green-200"; // Common
+        case "2":
+          return "bg-blue-200"; // Uncommon
+        case "3":
+          return "bg-purple-200"; // Rare
+        default:
+          return "bg-gray-200";
+      }
+    }
+
     switch (tileType) {
+      case 0:
+        return "bg-gray-300"; // Depleted (already mined)
       case 1:
-        return "bg-green-200"; // Common
+        return "bg-green-200"; // Common (1 point)
       case 2:
-        return "bg-blue-200"; // Uncommon
+        return "bg-blue-200"; // Uncommon (5 points)
       case 3:
-        return "bg-purple-200"; // Rare
+        return "bg-purple-200"; // Rare (10 points)
       default:
         return "bg-gray-200";
+    }
+  };
+
+  // Get radar tile color (without bg- prefix for direct color application)
+  const getRadarTileColor = (tileType: number | string) => {
+    if (typeof tileType === "string") {
+      switch (tileType) {
+        case "X":
+          return "#fcd34d"; // Yellow-300 (bright gold)
+        case "0":
+          return "#d1d5db"; // Gray-300
+        case "1":
+          return "#bbf7d0"; // Green-200
+        case "2":
+          return "#bfdbfe"; // Blue-200
+        case "3":
+          return "#e9d5ff"; // Purple-200
+        default:
+          return "#e5e7eb"; // Gray-200
+      }
+    }
+
+    switch (tileType) {
+      case 0:
+        return "#d1d5db"; // Gray-300 (depleted)
+      case 1:
+        return "#bbf7d0"; // Green-200 (common)
+      case 2:
+        return "#bfdbfe"; // Blue-200 (uncommon)
+      case 3:
+        return "#e9d5ff"; // Purple-200 (rare)
+      default:
+        return "#e5e7eb"; // Gray-200
     }
   };
 
@@ -681,6 +891,26 @@ const GamePageContent = () => {
     }
   }, [canPlay, fetchPlayerMap]);
 
+  // Update discovered tiles when player map changes
+  useEffect(() => {
+    if (playerMap?.localView) {
+      setDiscoveredTiles(prev => {
+        const newDiscovered = new Map(prev);
+
+        // Update discovered tiles from the 3x3 local view
+        playerMap.localView.forEach(row => {
+          row.forEach(cell => {
+            const { x, y } = cell.coordinates;
+            const key = `${x},${y}`;
+            newDiscovered.set(key, cell.tile);
+          });
+        });
+
+        return newDiscovered;
+      });
+    }
+  }, [playerMap]);
+
   if (!gameInfo) {
     return (
       <div className="flex items-center justify-center min-h-screen">
@@ -706,6 +936,53 @@ const GamePageContent = () => {
       )}
 
       <div className="flex items-center flex-col grow pt-10">
+        {/* Floating Radar/Map View */}
+        {canPlay &&
+          playerMap &&
+          (() => {
+            // Dynamic tile size based on player count
+            const numPlayers = Number(playerCount || 0);
+            const tileSize = numPlayers > 100 ? 1 : numPlayers > 25 ? 2 : numPlayers > 10 ? 3 : numPlayers > 5 ? 4 : 5;
+            const mapSize = gameStatus?.mapSize || playerMap.mapSize;
+
+            return (
+              <div
+                className="fixed top-20 left-4 bg-white border border-gray-400 shadow-lg z-50"
+                style={{
+                  width: `${mapSize * tileSize + 8}px`,
+                  height: `${mapSize * tileSize + 8}px`,
+                  padding: "4px",
+                  display: "grid",
+                  gridTemplateColumns: `repeat(${mapSize}, ${tileSize}px)`,
+                  gridTemplateRows: `repeat(${mapSize}, ${tileSize}px)`,
+                }}
+              >
+                {Array.from({ length: mapSize * mapSize }, (_, index) => {
+                  const x = index % mapSize;
+                  const y = Math.floor(index / mapSize);
+                  const key = `${x},${y}`;
+                  const tileType = discoveredTiles.get(key);
+                  const isPlayerPosition =
+                    playerMap.position && playerMap.position.x === x && playerMap.position.y === y;
+
+                  return (
+                    <div
+                      key={key}
+                      style={{
+                        width: `${tileSize}px`,
+                        height: `${tileSize}px`,
+                        backgroundColor: tileType !== undefined ? getRadarTileColor(tileType) : "#f3f4f6", // Gray-100 for unknown
+                        border: isPlayerPosition ? "1px solid #ef4444" : "none", // Red border for player position
+                        boxSizing: "border-box",
+                      }}
+                      title={`${x},${y}: ${tileType !== undefined ? `Tile ${tileType}` : "Unknown"}`}
+                    />
+                  );
+                })}
+              </div>
+            );
+          })()}
+
         <div className="px-5 w-full max-w-4xl">
           {/* Header */}
           <div className="flex items-center justify-between mb-8">
@@ -751,10 +1028,6 @@ const GamePageContent = () => {
                       </div>
                     );
                   })}
-                </div>
-
-                <div className="mt-4 text-sm text-gray-600">
-                  <p>Payout completed successfully!</p>
                 </div>
               </div>
             </div>
@@ -810,11 +1083,11 @@ const GamePageContent = () => {
                 {gameIsOpen ? (
                   <>
                     <button
-                      className={`btn btn-primary btn-lg ${loading ? "loading" : ""}`}
+                      className={`btn btn-primary btn-lg ${joinGameLoading ? "loading" : ""}`}
                       onClick={joinGame}
-                      disabled={loading || !gameIsOpen}
+                      disabled={joinGameLoading || !gameIsOpen}
                     >
-                      {loading ? "Joining Game..." : `🚀 Join Game (${formatEther(stakeAmount || 0n)} ETH)`}
+                      {joinGameLoading ? "Joining Game..." : `🚀 Join Game (${formatEther(stakeAmount || 0n)} ETH)`}
                     </button>
                   </>
                 ) : (
@@ -859,11 +1132,11 @@ const GamePageContent = () => {
                 {/* Action buttons */}
                 {hasOpened && !hasClosed && (
                   <button
-                    className={`btn btn-primary btn-lg ${loading ? "loading" : ""}`}
+                    className={`btn btn-primary btn-lg ${startGameLoading ? "loading" : ""}`}
                     onClick={closeGame}
-                    disabled={loading || !playerCount || playerCount === 0n}
+                    disabled={startGameLoading || !playerCount || playerCount === 0n}
                   >
-                    {loading ? "Starting..." : "🚀 Start Game"}
+                    {startGameLoading ? "Starting..." : "🚀 Start Game"}
                   </button>
                 )}
 
@@ -877,24 +1150,81 @@ const GamePageContent = () => {
             </div>
           )}
 
+          {/* Abandoned Game Controls - Show when game is abandoned and anyone can close it */}
+          {hasOpened && !hasClosed && isAbandoned && !isCreator && (
+            <div className="bg-gradient-to-r from-red-50 to-orange-50 border-2 border-red-300 rounded-lg p-6 mb-6 shadow-lg">
+              <div className="flex flex-col items-center space-y-4">
+                <div className="text-center">
+                  <h2 className="text-2xl font-bold text-red-800 mb-2">⚠️ Game Abandoned</h2>
+                  <p className="text-red-700 mb-4">The creator has abandoned this game. Anyone can now start it!</p>
+                </div>
+                <button
+                  className={`btn btn-warning btn-lg ${startGameLoading ? "loading" : ""}`}
+                  onClick={closeGame}
+                  disabled={startGameLoading}
+                >
+                  {startGameLoading ? "Starting..." : "🚀 Start Abandoned Game"}
+                </button>
+              </div>
+            </div>
+          )}
+
+          {/* Withdrawal Controls - Show when players can withdraw their stakes */}
+          {isPlayer && hasClosed && canWithdrawNow && !hasWithdrawn && (
+            <div className="bg-gradient-to-r from-yellow-50 to-red-50 border-2 border-yellow-300 rounded-lg p-6 mb-6 shadow-lg">
+              <div className="flex flex-col items-center space-y-4">
+                <div className="text-center">
+                  <h2 className="text-2xl font-bold text-yellow-800 mb-2">💰 Withdraw Available</h2>
+                  <p className="text-yellow-700 mb-4">
+                    The gamemaster has not paid out within the timeout period. You can withdraw your stake of{" "}
+                    <span className="font-bold">{formatEther(stakeAmount || 0n)} ETH</span>.
+                  </p>
+                </div>
+                <button
+                  className={`btn btn-warning btn-lg ${loading ? "loading" : ""}`}
+                  onClick={withdrawStake}
+                  disabled={loading}
+                >
+                  {loading ? "Withdrawing..." : `💰 Withdraw ${formatEther(stakeAmount || 0n)} ETH`}
+                </button>
+              </div>
+            </div>
+          )}
+
           {/* Player's Game Interface - Map at top when authenticated */}
           {canPlay && playerMap && (
             <div className="bg-base-100 rounded-lg p-6 shadow-lg mb-6">
-              <h2 className="text-xl font-bold mb-4">Your Game View</h2>
+              <div className="flex justify-between items-center mb-4">
+                <h2 className="text-xl font-bold">Your Game View</h2>
+                <div className="text-right">
+                  <p className="text-sm text-gray-600">Total Pot</p>
+                  <p className="text-lg font-bold text-green-600">
+                    {formatEther((stakeAmount || 0n) * (playerCount || 0n))} ETH
+                  </p>
+                </div>
+              </div>
 
               {/* Interactive 3x3 Map Grid */}
               <div className="mb-6">
                 <h3 className="text-lg font-semibold mb-3 text-center">
-                  Score: {playerMap.score ?? 0} | Moves: {playerMap.movesRemaining ?? 0} | Mines:{" "}
-                  {playerMap.minesRemaining ?? 0} | Position: ({playerMap.position.x}, {playerMap.position.y})
+                  Score: {playerMap.score} | Moves: {playerMap.movesRemaining} | Mines: {playerMap.minesRemaining}
+                  {playerMap.timeRemaining !== undefined && <> | Time: {playerMap.timeRemaining}s</>}
                 </h3>
                 <div className="grid grid-cols-3 gap-2 max-w-xs mx-auto">
                   {playerMap.localView.map((row, rowIndex) =>
                     row.map((cell, colIndex) => {
                       const direction = getDirectionFromPosition(rowIndex, colIndex);
-                      const isClickable = cell && !cell.player && direction;
-                      const isPlayerTile = cell?.player;
-                      const canMine = isPlayerTile && (playerMap.minesRemaining ?? 0) > 0;
+                      const isClickable =
+                        !cell.player &&
+                        direction &&
+                        (timeRemaining === null || timeRemaining > 0) &&
+                        playerMap.movesRemaining > 0;
+                      const isPlayerTile = cell.player;
+                      const canMine =
+                        isPlayerTile &&
+                        playerMap.minesRemaining > 0 &&
+                        (timeRemaining === null || timeRemaining > 0) &&
+                        (typeof cell.tile === "number" ? cell.tile > 0 : cell.tile !== "0"); // Handle both numbers and strings
 
                       return (
                         <div
@@ -902,14 +1232,16 @@ const GamePageContent = () => {
                           className={`
                             w-20 h-20 border-2 border-gray-400 flex items-center justify-center text-sm font-semibold
                             relative transition-all duration-200
-                            ${cell ? getTileColor(cell.tile) : "bg-gray-100"}
-                            ${cell?.player ? "ring-4 ring-yellow-400" : ""}
+                            ${getTileColor(cell.tile)}
+                            ${cell.player ? "ring-4 ring-yellow-400" : ""}
                             ${isClickable ? "cursor-pointer hover:brightness-110 hover:scale-105 hover:border-blue-500 hover:shadow-lg" : ""}
                             ${canMine ? "cursor-pointer hover:brightness-110 hover:scale-105 hover:border-green-500 hover:shadow-lg" : ""}
                             ${loading ? "opacity-50" : ""}
+                            ${timeRemaining !== null && timeRemaining <= 0 ? "opacity-25 cursor-not-allowed" : ""}
                           `}
                           onClick={() => {
                             if (loading || !canPlay) return;
+                            if (timeRemaining !== null && timeRemaining <= 0) return;
                             if (isClickable) {
                               movePlayer(direction);
                             } else if (canMine) {
@@ -917,28 +1249,48 @@ const GamePageContent = () => {
                             }
                           }}
                           title={
-                            isClickable
-                              ? `Move ${direction}`
-                              : canMine
-                                ? `Mine here for ${cell.tile === 1 ? "1" : cell.tile === 2 ? "5" : "10"} points`
-                                : cell?.player
-                                  ? (playerMap.minesRemaining ?? 0) > 0
-                                    ? "Click to mine"
-                                    : "No mines remaining"
-                                  : "Cannot move here"
+                            timeRemaining !== null && timeRemaining <= 0
+                              ? "Time expired! Game over."
+                              : isClickable
+                                ? `Move ${direction} to tile ${cell.tile}`
+                                : canMine
+                                  ? `Mine here for ${
+                                      cell.tile === 1 || cell.tile === "1"
+                                        ? "1"
+                                        : cell.tile === 2 || cell.tile === "2"
+                                          ? "5"
+                                          : cell.tile === 3 || cell.tile === "3"
+                                            ? "10"
+                                            : cell.tile === "X"
+                                              ? "special"
+                                              : "0"
+                                    } points`
+                                  : cell.player
+                                    ? playerMap.minesRemaining > 0
+                                      ? cell.tile === 0 || cell.tile === "0"
+                                        ? "Already mined (depleted)"
+                                        : "Click to mine"
+                                      : "No mines remaining"
+                                    : "Cannot move here"
                           }
                         >
-                          {cell ? (
-                            <div className="text-center">
-                              <div>{cell.tile}</div>
-                              {cell.player && (
-                                <div className="text-yellow-600">
-                                  {(playerMap.minesRemaining ?? 0) > 0 ? "⛏️" : "👤"}
-                                </div>
-                              )}
+                          <div className="text-center">
+                            <div>{cell.tile}</div>
+                            {cell.player && (
+                              <div className="text-yellow-600">
+                                {playerMap.minesRemaining > 0 &&
+                                (typeof cell.tile === "number" ? cell.tile > 0 : cell.tile !== "0")
+                                  ? "⛏️"
+                                  : "👤"}
+                              </div>
+                            )}
+                          </div>
+
+                          {/* Player position coordinates in top left */}
+                          {cell.player && (
+                            <div className="absolute top-1 left-1 text-xs opacity-90 text-gray-700 bg-white bg-opacity-80 px-1 rounded">
+                              {playerMap.position.x},{playerMap.position.y}
                             </div>
-                          ) : (
-                            <span className="text-gray-400">—</span>
                           )}
 
                           {/* Subtle directional indicator for clickable tiles */}
@@ -954,32 +1306,10 @@ const GamePageContent = () => {
                               {direction === "southeast" && "↘"}
                             </div>
                           )}
-
-                          {/* Mine indicator for player tile */}
-                          {canMine && <div className="absolute top-1 left-1 text-xs opacity-80 text-green-600">⛏️</div>}
                         </div>
                       );
                     }),
                   )}
-                </div>
-                <p className="text-center text-sm text-gray-600 mt-2">
-                  Click on adjacent tiles to move • Click your position (⛏️) to mine for points
-                </p>
-              </div>
-
-              {/* Legend */}
-              <div className="text-center">
-                <h3 className="text-lg font-semibold mb-2">Land Types</h3>
-                <div className="flex justify-center space-x-4 text-sm">
-                  <span className="flex items-center">
-                    <div className="w-4 h-4 bg-green-200 border mr-1"></div>1 = Common
-                  </span>
-                  <span className="flex items-center">
-                    <div className="w-4 h-4 bg-blue-200 border mr-1"></div>2 = Uncommon
-                  </span>
-                  <span className="flex items-center">
-                    <div className="w-4 h-4 bg-purple-200 border mr-1"></div>3 = Rare
-                  </span>
                 </div>
               </div>
             </div>
@@ -1016,24 +1346,18 @@ const GamePageContent = () => {
                             )}
                           </div>
                         </div>
-                        <div className="grid grid-cols-2 md:grid-cols-4 gap-2 text-sm">
-                          <div>
-                            <span className="text-gray-600">Position:</span>
-                            <span className="ml-1 font-semibold">
-                              ({player.position.x}, {player.position.y})
-                            </span>
-                          </div>
+                        <div className="grid grid-cols-1 md:grid-cols-3 gap-2 text-sm">
                           <div>
                             <span className="text-gray-600">Score:</span>
-                            <span className="ml-1 font-semibold text-green-600">{player.score ?? 0}</span>
+                            <span className="ml-1 font-semibold text-green-600">{player.score}</span>
                           </div>
                           <div>
                             <span className="text-gray-600">Moves:</span>
-                            <span className="ml-1 font-semibold text-blue-600">{player.movesRemaining ?? 0}</span>
+                            <span className="ml-1 font-semibold text-blue-600">{player.movesRemaining}</span>
                           </div>
                           <div>
                             <span className="text-gray-600">Mines:</span>
-                            <span className="ml-1 font-semibold text-orange-600">{player.minesRemaining ?? 0}</span>
+                            <span className="ml-1 font-semibold text-orange-600">{player.minesRemaining}</span>
                           </div>
                         </div>
                       </div>
@@ -1079,6 +1403,16 @@ const GamePageContent = () => {
                 <p className="text-xl font-bold text-purple-600">{playerCount?.toString() || 0}</p>
               </div>
               <div>
+                <p className="text-sm text-gray-600 mb-1">Map Size</p>
+                <p className="text-xl font-bold text-orange-600">
+                  {gameStatus?.mapSize
+                    ? `${gameStatus.mapSize}×${gameStatus.mapSize}`
+                    : playerMap?.mapSize
+                      ? `${playerMap.mapSize}×${playerMap.mapSize}`
+                      : "Loading..."}
+                </p>
+              </div>
+              <div>
                 <p className="text-sm text-gray-600 mb-1">Status</p>
                 <span
                   className={`px-3 py-1 rounded-full text-sm font-medium ${
@@ -1109,6 +1443,22 @@ const GamePageContent = () => {
                       <span className="text-gray-600">❌ Not Committed</span>
                     )}
                   </div>
+                </div>
+              )}
+              {hasOpened && !hasClosed && timeUntilAbandonmentTimeout > 0n && (
+                <div>
+                  <p className="text-sm text-gray-600 mb-1">Abandonment Timeout</p>
+                  <p className="text-sm text-orange-600">
+                    {Math.floor(Number(timeUntilAbandonmentTimeout))} seconds until anyone can start the game
+                  </p>
+                </div>
+              )}
+              {hasClosed && timeUntilWithdrawal > 0n && !hasPaidOut && (
+                <div>
+                  <p className="text-sm text-gray-600 mb-1">Withdrawal Timeout</p>
+                  <p className="text-sm text-red-600">
+                    {Math.floor(Number(timeUntilWithdrawal))} seconds until players can withdraw
+                  </p>
                 </div>
               )}
             </div>

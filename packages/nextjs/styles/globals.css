@@ -119,3 +119,13 @@
 .link:hover {
   opacity: 80%;
 }
+
+@keyframes scalePulse {
+  0%,
+  100% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.15);
+  }
+}
