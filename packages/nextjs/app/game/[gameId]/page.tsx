@@ -634,6 +634,12 @@ const GamePageContent = () => {
       return;
     }
 
+    if (hasClosed || hasPaidOut) {
+      console.log("❌ Cannot move - game is completed");
+      setError("Game is completed. No more moves allowed.");
+      return;
+    }
+
     setLoading(true);
     setError(null);
 
@@ -728,6 +734,12 @@ const GamePageContent = () => {
 
     if (loading) {
       console.log("❌ Cannot mine - already loading");
+      return;
+    }
+
+    if (hasClosed || hasPaidOut) {
+      console.log("❌ Cannot mine - game is completed");
+      setError("Game is completed. No more mining allowed.");
       return;
     }
 
@@ -997,6 +1009,24 @@ const GamePageContent = () => {
       });
     }
   }, [playerMap]);
+
+  useEffect(() => {
+    // Reset state variables when a new game is loaded
+    setGameStatus(null);
+    setPlayerMap(null);
+    setAllPlayers([]);
+    setLoading(false);
+    setError(null);
+    setJwtToken(null);
+    setIsAuthenticated(false);
+    setAuthLoading(false);
+    setJoinGameLoading(false);
+    setStartGameLoading(false);
+    setShowConfetti(false);
+    setTimeRemaining(null);
+    setRecentMoveTimestamp(null);
+    setDiscoveredTiles(new Map());
+  }, [gameId]);
 
   if (!gameInfo) {
     return (
