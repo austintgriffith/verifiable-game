@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import type { NextPage } from "next";
 import { QRCodeSVG } from "qrcode.react";
@@ -604,8 +604,8 @@ const GamePageContent = () => {
     }
   };
 
-  // Fetch player's map view - using useCallback to prevent infinite re-renders
-  const fetchPlayerMap = useCallback(async () => {
+  // Fetch player's map view
+  const fetchPlayerMap = async () => {
     console.log("🗺️ Fetching player map...");
     console.log("Can play:", canPlay);
     console.log("Has JWT token:", !!jwtToken);
@@ -622,8 +622,9 @@ const GamePageContent = () => {
         },
       });
 
+      console.log("📥 Map response status:", response.status);
       const data = await response.json();
-      console.log("Map response data:", data);
+      console.log("📥 Map response data:", data);
 
       if (data.success) {
         console.log("✅ Map data received successfully");
@@ -642,19 +643,38 @@ const GamePageContent = () => {
           sessionStorage.removeItem(tokenKey);
         }
         setError("Authentication expired. Please sign in again.");
+      } else {
+        console.log("❌ Map fetch failed:", data);
       }
     } catch (err) {
       console.error("💥 Failed to fetch player map:", err);
     }
-  }, [canPlay, jwtToken, gameId]);
+  };
 
   // Move player
   const movePlayer = async (direction: string) => {
-    if (!canPlay || !jwtToken) return;
+    console.log("🎮 Move player attempt:", {
+      direction,
+      canPlay,
+      hasJwtToken: !!jwtToken,
+      loading,
+      timeRemaining,
+    });
+
+    if (!canPlay || !jwtToken) {
+      console.log("❌ Cannot move - missing requirements:", { canPlay, hasJwtToken: !!jwtToken });
+      return;
+    }
 
     // Check if timer has expired
     if (timeRemaining !== null && timeRemaining <= 0) {
+      console.log("❌ Cannot move - time expired:", timeRemaining);
       setError("Time expired! Game over.");
+      return;
+    }
+
+    if (loading) {
+      console.log("❌ Cannot move - already loading");
       return;
     }
 
@@ -662,6 +682,7 @@ const GamePageContent = () => {
     setError(null);
 
     try {
+      console.log("🚀 Sending move request:", { direction, url: `${API_BASE}/move` });
       const response = await fetch(`${API_BASE}/move`, {
         method: "POST",
         headers: {
@@ -671,9 +692,12 @@ const GamePageContent = () => {
         body: JSON.stringify({ direction }),
       });
 
+      console.log("📥 Move response status:", response.status);
       const data = await response.json();
+      console.log("📥 Move response data:", data);
 
       if (data.success) {
+        console.log("✅ Move successful, updating player map");
         setPlayerMap(prevMap =>
           prevMap
             ? {
@@ -695,6 +719,7 @@ const GamePageContent = () => {
 
         fetchAllPlayers();
       } else if (response.status === 401 || response.status === 403) {
+        console.log("🔒 Move failed - authentication expired");
         setIsAuthenticated(false);
         setJwtToken(null);
         const tokenKey = `gameJwtToken_${API_BASE}_${gameId}`;
@@ -703,6 +728,7 @@ const GamePageContent = () => {
         }
         setError("Authentication expired. Please sign in again.");
       } else {
+        console.log("❌ Move failed:", data);
         setError(data.error || "Move failed");
       }
     } catch (err) {
@@ -715,11 +741,27 @@ const GamePageContent = () => {
 
   // Mine at current position
   const minePlayer = async () => {
-    if (!canPlay || !jwtToken) return;
+    console.log("⛏️ Mine player attempt:", {
+      canPlay,
+      hasJwtToken: !!jwtToken,
+      loading,
+      timeRemaining,
+    });
+
+    if (!canPlay || !jwtToken) {
+      console.log("❌ Cannot mine - missing requirements:", { canPlay, hasJwtToken: !!jwtToken });
+      return;
+    }
 
     // Check if timer has expired
     if (timeRemaining !== null && timeRemaining <= 0) {
+      console.log("❌ Cannot mine - time expired:", timeRemaining);
       setError("Time expired! Game over.");
+      return;
+    }
+
+    if (loading) {
+      console.log("❌ Cannot mine - already loading");
       return;
     }
 
@@ -727,6 +769,7 @@ const GamePageContent = () => {
     setError(null);
 
     try {
+      console.log("🚀 Sending mine request:", { url: `${API_BASE}/mine` });
       const response = await fetch(`${API_BASE}/mine`, {
         method: "POST",
         headers: {
@@ -736,9 +779,12 @@ const GamePageContent = () => {
         body: JSON.stringify({}),
       });
 
+      console.log("📥 Mine response status:", response.status);
       const data = await response.json();
+      console.log("📥 Mine response data:", data);
 
       if (data.success) {
+        console.log("✅ Mine successful, updating player map");
         setPlayerMap(prevMap =>
           prevMap
             ? {
@@ -759,6 +805,7 @@ const GamePageContent = () => {
 
         fetchAllPlayers();
       } else if (response.status === 401 || response.status === 403) {
+        console.log("🔒 Mine failed - authentication expired");
         setIsAuthenticated(false);
         setJwtToken(null);
         const tokenKey = `gameJwtToken_${API_BASE}_${gameId}`;
@@ -767,6 +814,7 @@ const GamePageContent = () => {
         }
         setError("Authentication expired. Please sign in again.");
       } else {
+        console.log("❌ Mine failed:", data);
         setError(data.error || "Mining failed");
       }
     } catch (err) {
@@ -852,7 +900,7 @@ const GamePageContent = () => {
     return directions[rowIndex][colIndex] || null;
   };
 
-  // Poll for updates every 1 second - only when game is closed but not finished
+  // Poll for updates - only when game is closed but not finished
   useEffect(() => {
     console.log("⏰ Setting up polling interval...");
     console.log("Game closed status:", hasClosed);
@@ -868,28 +916,38 @@ const GamePageContent = () => {
       return;
     }
 
+    // Initial fetch
     fetchGameStatus();
     fetchAllPlayers();
 
+    // Set up interval with longer delay to reduce server load
     const interval = setInterval(() => {
+      console.log("🔄 Polling update...");
       fetchGameStatus();
       fetchAllPlayers();
-      if (canPlay) {
+
+      // Only fetch player map if user is authenticated and a player
+      if (isAuthenticated && jwtToken && isPlayer) {
         fetchPlayerMap();
       }
-    }, 1000);
+    }, 2000); // Reduced to 2 seconds to ease server load
+
+    console.log("✅ Polling interval created with ID:", interval);
 
     return () => {
+      console.log("🛑 Clearing polling interval:", interval);
       clearInterval(interval);
     };
-  }, [canPlay, fetchPlayerMap, hasClosed, hasPaidOut]);
+  }, [hasClosed, hasPaidOut, isAuthenticated, jwtToken, isPlayer]); // Removed unstable dependencies
 
   // Fetch player map when authentication and player status change
   useEffect(() => {
-    if (canPlay) {
+    console.log("🗺️ Map fetch trigger - canPlay:", canPlay, "hasJwtToken:", !!jwtToken);
+    if (canPlay && jwtToken) {
+      console.log("🔄 Triggering initial map fetch...");
       fetchPlayerMap();
     }
-  }, [canPlay, fetchPlayerMap]);
+  }, [canPlay, jwtToken]); // Removed fetchPlayerMap dependency to prevent infinite loops
 
   // Update discovered tiles when player map changes
   useEffect(() => {
@@ -1240,12 +1298,35 @@ const GamePageContent = () => {
                             ${timeRemaining !== null && timeRemaining <= 0 ? "opacity-25 cursor-not-allowed" : ""}
                           `}
                           onClick={() => {
-                            if (loading || !canPlay) return;
-                            if (timeRemaining !== null && timeRemaining <= 0) return;
+                            console.log("🖱️ Tile clicked:", {
+                              rowIndex,
+                              colIndex,
+                              direction,
+                              isClickable,
+                              canMine,
+                              loading,
+                              canPlay,
+                              timeRemaining,
+                              cellTile: cell.tile,
+                              isPlayerTile: cell.player,
+                            });
+
+                            if (loading || !canPlay) {
+                              console.log("❌ Click blocked - loading or can't play:", { loading, canPlay });
+                              return;
+                            }
+                            if (timeRemaining !== null && timeRemaining <= 0) {
+                              console.log("❌ Click blocked - time expired:", timeRemaining);
+                              return;
+                            }
                             if (isClickable) {
+                              console.log("➡️ Triggering movement:", direction);
                               movePlayer(direction);
                             } else if (canMine) {
+                              console.log("⛏️ Triggering mining");
                               minePlayer();
+                            } else {
+                              console.log("❌ Click not actionable");
                             }
                           }}
                           title={
