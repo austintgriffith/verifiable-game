@@ -258,7 +258,7 @@ const GamePageContent = () => {
       console.log("  - Has Closed:", hasClosed);
       console.log("  - Has Paid Out:", hasPaidOut);
     }
-  }, [connectedAddress, gameId, isAuthenticated, isPlayer, canPlay, gameStatus, hasClosed, hasPaidOut]);
+  }, [connectedAddress, gameId, isAuthenticated, isPlayer, canPlay, gameStatus, hasClosed, hasPaidOut, playerMap]);
 
   // Authentication functions
   const signIn = async () => {
