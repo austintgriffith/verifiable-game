@@ -558,13 +558,19 @@ const GamePageContent = () => {
   // Game API functions
   const fetchGameStatus = async () => {
     console.log("📊 Fetching game status...");
+    console.log("🎯 EXPECTED GAME ID:", gameId);
     try {
-      console.log("Request URL:", `${API_BASE}/status`);
-      const response = await fetch(`${API_BASE}/status`);
+      const statusUrl = `${API_BASE}/status?gameId=${gameId}`;
+      console.log("Request URL:", statusUrl);
+      const response = await fetch(statusUrl);
       console.log("Status response status:", response.status);
 
       const data = await response.json();
       console.log("Status response data:", data);
+      console.log("🔍 API GAME ID MISMATCH CHECK:");
+      console.log("  - Expected Game ID:", gameId);
+      console.log("  - API Returned Game ID:", data.gameId);
+      console.log("  - Game IDs Match:", data.gameId === gameId.toString());
 
       setGameStatus(data);
 
@@ -583,13 +589,19 @@ const GamePageContent = () => {
   // Fetch all players
   const fetchAllPlayers = async () => {
     console.log("👥 Fetching all players...");
+    console.log("🎯 EXPECTED GAME ID:", gameId);
     try {
-      console.log("Request URL:", `${API_BASE}/players`);
-      const response = await fetch(`${API_BASE}/players`);
+      const playersUrl = `${API_BASE}/players?gameId=${gameId}`;
+      console.log("Request URL:", playersUrl);
+      const response = await fetch(playersUrl);
       console.log("Players response status:", response.status);
 
       const data: PlayersResponse = await response.json();
       console.log("Players response data:", data);
+      console.log("🔍 PLAYERS API GAME ID MISMATCH CHECK:");
+      console.log("  - Expected Game ID:", gameId);
+      console.log("  - API Returned Game ID:", (data as any).gameId);
+      console.log("  - Game IDs Match:", (data as any).gameId === gameId.toString());
 
       if (data.success) {
         console.log("✅ Players data updated:", data.players.length, "players");
@@ -644,8 +656,9 @@ const GamePageContent = () => {
     setError(null);
 
     try {
-      console.log("🚀 Sending move request:", { direction, url: `${API_BASE}/move` });
-      const response = await fetch(`${API_BASE}/move`, {
+      const moveUrl = `${API_BASE}/move?gameId=${gameId}`;
+      console.log("🚀 Sending move request:", { direction, url: moveUrl });
+      const response = await fetch(moveUrl, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -747,8 +760,9 @@ const GamePageContent = () => {
     setError(null);
 
     try {
-      console.log("🚀 Sending mine request:", { url: `${API_BASE}/mine` });
-      const response = await fetch(`${API_BASE}/mine`, {
+      const mineUrl = `${API_BASE}/mine?gameId=${gameId}`;
+      console.log("🚀 Sending mine request:", { url: mineUrl });
+      const response = await fetch(mineUrl, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -816,6 +830,7 @@ const GamePageContent = () => {
   // Fetch player's map view
   const fetchPlayerMap = useCallback(async () => {
     console.log("🗺️ Fetching player map...");
+    console.log("🎯 EXPECTED GAME ID:", gameId);
     console.log("Can play:", canPlay);
     console.log("Has JWT token:", !!jwtToken);
 
@@ -831,7 +846,8 @@ const GamePageContent = () => {
     }
 
     try {
-      const response = await fetch(`${API_BASE}/map`, {
+      const mapUrl = `${API_BASE}/map?gameId=${gameId}`;
+      const response = await fetch(mapUrl, {
         headers: {
           Authorization: `Bearer ${jwtToken}`,
         },
@@ -840,6 +856,9 @@ const GamePageContent = () => {
       console.log("📥 Map response status:", response.status);
       const data = await response.json();
       console.log("📥 Map response data:", data);
+      console.log("🔍 MAP API GAME ID CHECK:");
+      console.log("  - Expected Game ID:", gameId);
+      console.log("  - Map Size from API:", data.mapSize);
 
       if (data.success) {
         console.log("✅ Map data received successfully");
@@ -1061,6 +1080,19 @@ const GamePageContent = () => {
             const numPlayers = Number(playerCount || 0);
             const tileSize = numPlayers > 100 ? 1 : numPlayers > 25 ? 2 : numPlayers > 10 ? 3 : numPlayers > 5 ? 4 : 5;
             const mapSize = gameStatus?.mapSize || playerMap.mapSize;
+
+            // Debug logging for map radar sizing
+            console.log("🗺️ MAP RADAR DEBUG:");
+            console.log("  - Contract Player Count:", playerCount);
+            console.log("  - Numeric Players:", numPlayers);
+            console.log("  - Calculated Tile Size:", tileSize);
+            console.log("  - Game Status Map Size:", gameStatus?.mapSize);
+            console.log("  - Player Map Size:", playerMap.mapSize);
+            console.log("  - Final Map Size Used:", mapSize);
+            console.log("  - Game Status Game ID:", gameStatus?.gameId);
+            console.log("  - Expected Game ID:", gameId);
+            console.log("  - Map Size Source:", gameStatus?.mapSize ? "gameStatus" : "playerMap");
+            console.log("  - Final Radar Dimensions:", `${mapSize * tileSize + 8}px x ${mapSize * tileSize + 8}px`);
 
             return (
               <div
