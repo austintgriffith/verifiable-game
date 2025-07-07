@@ -16,7 +16,7 @@ const API_BASE = "https://slop.computer:8000";
 //const API_BASE = "http://localhost:8000";
 
 // Heavy debug flag - set to true to log all server communications
-const heavyDebug = false;
+const heavyDebug = true;
 
 // Types for the game API responses
 interface GameStatus {
@@ -1707,10 +1707,27 @@ const GamePageContent = () => {
                     } else {
                       // Outer fog of war tiles
                       const playerPos = playerMap.position;
-                      const worldX = playerPos.x + (gridCol - 2); // -2 because player is at center (2,2)
-                      const worldY = playerPos.y + (gridRow - 2);
+                      const mapSize = gameStatus?.mapSize || playerMap?.mapSize || 100; // fallback to 100 if not available
+
+                      // Calculate world coordinates relative to player position
+                      const offsetX = gridCol - 2; // -2 because player is at center (2,2)
+                      const offsetY = gridRow - 2;
+                      const rawX = playerPos.x + offsetX;
+                      const rawY = playerPos.y + offsetY;
+
+                      // Proper modulo wrapping that handles negative numbers correctly
+                      const worldX = ((rawX % mapSize) + mapSize) % mapSize;
+                      const worldY = ((rawY % mapSize) + mapSize) % mapSize;
+
                       const tileKey = `${worldX},${worldY}`;
                       const discoveredTile = discoveredTiles.get(tileKey);
+
+                      // Debug logging for wrap-around
+                      if (heavyDebug) {
+                        console.log(
+                          `🔥 [HEAVY DEBUG] Outer tile calc: grid(${gridRow},${gridCol}) offset(${offsetX},${offsetY}) raw(${rawX},${rawY}) world(${worldX},${worldY}) mapSize=${mapSize}`,
+                        );
+                      }
 
                       // Determine if this outer tile is clickable for long-distance moves
                       const canMoveToOuterTile =
