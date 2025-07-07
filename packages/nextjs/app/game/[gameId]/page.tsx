@@ -1084,29 +1084,29 @@ const GamePageContent = () => {
         case "X":
           return "bg-yellow-300"; // Special tile (bright gold)
         case "0":
-          return "bg-gray-300"; // Depleted
+          return "bg-gray-200"; // Depleted (light grey)
         case "1":
-          return "bg-green-200"; // Common
+          return "bg-blue-200"; // Common (light blue)
         case "2":
-          return "bg-blue-200"; // Uncommon
+          return "bg-green-200"; // Uncommon (light green)
         case "3":
-          return "bg-purple-200"; // Rare
+          return "bg-[#ff6b35]"; // Rare (create game button color)
         default:
-          return "bg-gray-200";
+          return "bg-black"; // Unexplored (black)
       }
     }
 
     switch (tileType) {
       case 0:
-        return "bg-gray-300"; // Depleted (already mined)
+        return "bg-gray-200"; // Depleted (light grey)
       case 1:
-        return "bg-green-200"; // Common (1 point)
+        return "bg-blue-200"; // Common (light blue)
       case 2:
-        return "bg-blue-200"; // Uncommon (5 points)
+        return "bg-green-200"; // Uncommon (light green)
       case 3:
-        return "bg-purple-200"; // Rare (10 points)
+        return "bg-[#ff6b35]"; // Rare (create game button color)
       default:
-        return "bg-gray-200";
+        return "bg-black"; // Unexplored (black)
     }
   };
 
@@ -1117,29 +1117,29 @@ const GamePageContent = () => {
         case "X":
           return "#fcd34d"; // Yellow-300 (bright gold)
         case "0":
-          return "#d1d5db"; // Gray-300
+          return "#e5e7eb"; // Gray-200 (light grey)
         case "1":
-          return "#bbf7d0"; // Green-200
+          return "#bfdbfe"; // Blue-200 (light blue)
         case "2":
-          return "#bfdbfe"; // Blue-200
+          return "#bbf7d0"; // Green-200 (light green)
         case "3":
-          return "#e9d5ff"; // Purple-200
+          return "#ff6b35"; // Create game button color
         default:
-          return "#e5e7eb"; // Gray-200
+          return "#000000"; // Black
       }
     }
 
     switch (tileType) {
       case 0:
-        return "#d1d5db"; // Gray-300 (depleted)
+        return "#e5e7eb"; // Gray-200 (light grey)
       case 1:
-        return "#bbf7d0"; // Green-200 (common)
+        return "#bfdbfe"; // Blue-200 (light blue)
       case 2:
-        return "#bfdbfe"; // Blue-200 (uncommon)
+        return "#bbf7d0"; // Green-200 (light green)
       case 3:
-        return "#e9d5ff"; // Purple-200 (rare)
+        return "#ff6b35"; // Create game button color
       default:
-        return "#e5e7eb"; // Gray-200
+        return "#000000"; // Black
     }
   };
 
@@ -1355,7 +1355,7 @@ const GamePageContent = () => {
                   style={{
                     width: `${radarConfig.tileSize}px`,
                     height: `${radarConfig.tileSize}px`,
-                    backgroundColor: tileType !== undefined ? getRadarTileColor(tileType) : "#f3f4f6", // Gray-100 for unknown
+                    backgroundColor: tileType !== undefined ? getRadarTileColor(tileType) : "#000000", // Black for unknown
                     border: isPlayerPosition ? "1px solid #ef4444" : "none", // Red border for player position
                     boxSizing: "border-box",
                   }}
@@ -1759,7 +1759,7 @@ const GamePageContent = () => {
                             relative transition-all duration-200 opacity-40
                             ${gridRow > 0 ? "border-t border-gray-400" : ""}
                             ${gridCol > 0 ? "border-l border-gray-400" : ""}
-                            ${discoveredTile !== undefined ? getTileColor(discoveredTile) : "bg-gray-300"}
+                            ${discoveredTile !== undefined ? getTileColor(discoveredTile) : "bg-black"}
                             ${canMoveToOuterTile ? "cursor-pointer hover:opacity-60 hover:scale-105" : ""}
                             ${loading ? "opacity-25" : ""}
                             ${timeRemaining !== null && timeRemaining <= 0 ? "opacity-15 cursor-not-allowed" : ""}
@@ -1785,11 +1785,6 @@ const GamePageContent = () => {
                         >
                           <div className="text-center opacity-70">
                             {discoveredTile !== undefined ? discoveredTile : "?"}
-                          </div>
-
-                          {/* Coordinates for outer tiles */}
-                          <div className="absolute top-0 left-0 text-xs opacity-50 text-gray-600 bg-white bg-opacity-60 px-1 rounded text-[10px]">
-                            {worldX},{worldY}
                           </div>
                         </div>
                       );
