@@ -1593,10 +1593,21 @@ const GamePageContent = () => {
                   Score: {playerMap.score} | Moves: {playerMap.movesRemaining} | Mines: {playerMap.minesRemaining}
                   {playerMap.timeRemaining !== undefined && <> | Time: {playerMap.timeRemaining}s</>}
                 </h3>
-                <div className="grid grid-cols-3 gap-2 max-w-xs mx-auto">
-                  {playerMap.localView.map((row, rowIndex) =>
-                    row.map((cell, colIndex) => {
-                      const direction = getDirectionFromPosition(rowIndex, colIndex);
+                <div className="grid grid-cols-5 gap-0 max-w-md mx-auto border-2 border-gray-400">
+                  {Array.from({ length: 25 }, (_, index) => {
+                    const gridRow = Math.floor(index / 5);
+                    const gridCol = index % 5;
+
+                    // Center 3x3 area (rows 1-3, cols 1-3 in 0-indexed 5x5 grid)
+                    const isCenterArea = gridRow >= 1 && gridRow <= 3 && gridCol >= 1 && gridCol <= 3;
+
+                    if (isCenterArea) {
+                      // Map to original 3x3 coordinates
+                      const localRow = gridRow - 1;
+                      const localCol = gridCol - 1;
+                      const cell = playerMap.localView[localRow][localCol];
+
+                      const direction = getDirectionFromPosition(localRow, localCol);
                       const isClickable =
                         !cell.player &&
                         direction &&
@@ -1607,51 +1618,30 @@ const GamePageContent = () => {
                         isPlayerTile &&
                         playerMap.minesRemaining > 0 &&
                         (timeRemaining === null || timeRemaining > 0) &&
-                        (typeof cell.tile === "number" ? cell.tile > 0 : cell.tile !== "0"); // Handle both numbers and strings
+                        (typeof cell.tile === "number" ? cell.tile > 0 : cell.tile !== "0");
 
                       return (
                         <div
-                          key={`${rowIndex}-${colIndex}`}
+                          key={`center-${localRow}-${localCol}`}
                           className={`
-                            w-20 h-20 border-2 border-gray-400 flex items-center justify-center text-sm font-semibold
+                            w-full h-full flex items-center justify-center text-sm font-semibold
                             relative transition-all duration-200
+                            ${gridRow > 0 ? "border-t border-gray-400" : ""}
+                            ${gridCol > 0 ? "border-l border-gray-400" : ""}
                             ${getTileColor(cell.tile)}
-                            ${cell.player ? "ring-4 ring-yellow-400" : ""}
-                            ${isClickable ? "cursor-pointer hover:brightness-110 hover:scale-105 hover:border-blue-500 hover:shadow-lg" : ""}
-                            ${canMine ? "cursor-pointer hover:brightness-110 hover:scale-105 hover:border-green-500 hover:shadow-lg" : ""}
+                            ${isClickable ? "cursor-pointer hover:brightness-110 hover:scale-105 hover:shadow-lg" : ""}
+                            ${canMine ? "cursor-pointer hover:brightness-110 hover:scale-105 hover:shadow-lg" : ""}
                             ${loading ? "opacity-50" : ""}
                             ${timeRemaining !== null && timeRemaining <= 0 ? "opacity-25 cursor-not-allowed" : ""}
                           `}
+                          style={{ minWidth: "64px", minHeight: "64px" }}
                           onClick={() => {
-                            console.log("🖱️ Tile clicked:", {
-                              rowIndex,
-                              colIndex,
-                              direction,
-                              isClickable,
-                              canMine,
-                              loading,
-                              canPlay,
-                              timeRemaining,
-                              cellTile: cell.tile,
-                              isPlayerTile: cell.player,
-                            });
-
-                            if (loading || !canPlay) {
-                              console.log("❌ Click blocked - loading or can't play:", { loading, canPlay });
-                              return;
-                            }
-                            if (timeRemaining !== null && timeRemaining <= 0) {
-                              console.log("❌ Click blocked - time expired:", timeRemaining);
-                              return;
-                            }
+                            if (loading || !canPlay) return;
+                            if (timeRemaining !== null && timeRemaining <= 0) return;
                             if (isClickable) {
-                              console.log("➡️ Triggering movement:", direction);
                               movePlayer(direction);
                             } else if (canMine) {
-                              console.log("⛏️ Triggering mining");
                               minePlayer();
-                            } else {
-                              console.log("❌ Click not actionable");
                             }
                           }}
                           title={
@@ -1714,8 +1704,80 @@ const GamePageContent = () => {
                           )}
                         </div>
                       );
-                    }),
-                  )}
+                    } else {
+                      // Outer fog of war tiles
+                      const playerPos = playerMap.position;
+                      const worldX = playerPos.x + (gridCol - 2); // -2 because player is at center (2,2)
+                      const worldY = playerPos.y + (gridRow - 2);
+                      const tileKey = `${worldX},${worldY}`;
+                      const discoveredTile = discoveredTiles.get(tileKey);
+
+                      // Determine if this outer tile is clickable for long-distance moves
+                      const canMoveToOuterTile =
+                        (timeRemaining === null || timeRemaining > 0) && playerMap.movesRemaining > 0 && !loading;
+
+                      // Get direction for outer tile
+                      const outerDirection =
+                        gridRow === 0
+                          ? gridCol === 0
+                            ? "far-northwest"
+                            : gridCol === 4
+                              ? "far-northeast"
+                              : "far-north"
+                          : gridRow === 4
+                            ? gridCol === 0
+                              ? "far-southwest"
+                              : gridCol === 4
+                                ? "far-southeast"
+                                : "far-south"
+                            : gridCol === 0
+                              ? "far-west"
+                              : "far-east";
+
+                      return (
+                        <div
+                          key={`outer-${gridRow}-${gridCol}`}
+                          className={`
+                            w-full h-full flex items-center justify-center text-xs font-semibold
+                            relative transition-all duration-200 opacity-40
+                            ${gridRow > 0 ? "border-t border-gray-400" : ""}
+                            ${gridCol > 0 ? "border-l border-gray-400" : ""}
+                            ${discoveredTile !== undefined ? getTileColor(discoveredTile) : "bg-gray-300"}
+                            ${canMoveToOuterTile ? "cursor-pointer hover:opacity-60 hover:scale-105" : ""}
+                            ${loading ? "opacity-25" : ""}
+                            ${timeRemaining !== null && timeRemaining <= 0 ? "opacity-15 cursor-not-allowed" : ""}
+                          `}
+                          style={{ minWidth: "64px", minHeight: "64px" }}
+                          onClick={() => {
+                            if (loading || !canPlay) return;
+                            if (timeRemaining !== null && timeRemaining <= 0) return;
+                            if (canMoveToOuterTile) {
+                              // For outer tiles, we can implement multi-step movement later
+                              // For now, just move in the general direction
+                              const basicDirection = outerDirection.replace("far-", "");
+                              movePlayer(basicDirection);
+                            }
+                          }}
+                          title={
+                            timeRemaining !== null && timeRemaining <= 0
+                              ? "Time expired! Game over."
+                              : canMoveToOuterTile
+                                ? `Move ${outerDirection} ${discoveredTile !== undefined ? `to tile ${discoveredTile}` : "(unexplored)"}`
+                                : "Cannot move here"
+                          }
+                        >
+                          <div className="text-center opacity-70">
+                            {discoveredTile !== undefined ? discoveredTile : "?"}
+                          </div>
+
+                          {/* Coordinates for outer tiles */}
+                          <div className="absolute top-0 left-0 text-xs opacity-50 text-gray-600 bg-white bg-opacity-60 px-1 rounded text-[10px]">
+                            {worldX},{worldY}
+                          </div>
+                        </div>
+                      );
+                    }
+                  })}
                 </div>
               </div>
             </div>
