@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import type { NextPage } from "next";
 import { QRCodeSVG } from "qrcode.react";
@@ -116,6 +116,19 @@ const GamePageContent = () => {
 
   // Track recent moves to prevent polling conflicts
   const [recentMoveTimestamp, setRecentMoveTimestamp] = useState<number | null>(null);
+
+  // Use ref to access current recentMoveTimestamp without causing useCallback recreation
+  const recentMoveTimestampRef = useRef<number | null>(null);
+  const timeRemainingRef = useRef<number | null>(null);
+
+  // Update refs when state changes
+  useEffect(() => {
+    recentMoveTimestampRef.current = recentMoveTimestamp;
+  }, [recentMoveTimestamp]);
+
+  useEffect(() => {
+    timeRemainingRef.current = timeRemaining;
+  }, [timeRemaining]);
 
   // Radar/Map state - track discovered tiles
   const [discoveredTiles, setDiscoveredTiles] = useState<Map<string, number | string>>(new Map());
@@ -947,12 +960,14 @@ const GamePageContent = () => {
 
   // Fetch player's map view
   const fetchPlayerMap = useCallback(async () => {
+    const currentRecentMoveTimestamp = recentMoveTimestampRef.current;
+
     if (heavyDebug) {
       console.log("🔥 [HEAVY DEBUG] fetchPlayerMap() called");
       console.log("🔥 [HEAVY DEBUG] Expected Game ID:", gameId);
       console.log("🔥 [HEAVY DEBUG] Can play:", canPlay);
       console.log("🔥 [HEAVY DEBUG] Has JWT token:", !!jwtToken);
-      console.log("🔥 [HEAVY DEBUG] recentMoveTimestamp:", recentMoveTimestamp);
+      console.log("🔥 [HEAVY DEBUG] recentMoveTimestamp:", currentRecentMoveTimestamp);
     }
 
     console.log("🗺️ Fetching player map...");
@@ -966,12 +981,12 @@ const GamePageContent = () => {
     }
 
     // Skip polling if there was a recent move to prevent overwriting fresh data
-    if (recentMoveTimestamp && Date.now() - recentMoveTimestamp < 5000) {
+    if (currentRecentMoveTimestamp && Date.now() - currentRecentMoveTimestamp < 5000) {
       console.log("⏸️ Skipping map fetch - recent move detected");
       if (heavyDebug) {
         console.log("🔥 [HEAVY DEBUG] Skipping map fetch due to recent move:", {
-          recentMoveTimestamp,
-          timeSinceMove: Date.now() - recentMoveTimestamp,
+          recentMoveTimestamp: currentRecentMoveTimestamp,
+          timeSinceMove: Date.now() - currentRecentMoveTimestamp,
         });
       }
       return;
@@ -1075,7 +1090,7 @@ const GamePageContent = () => {
         console.log("🔥 [HEAVY DEBUG] fetchPlayerMap error:", err);
       }
     }
-  }, [canPlay, jwtToken, gameId, recentMoveTimestamp]); // Removed playerMap dependency
+  }, [canPlay, jwtToken, gameId]); // Removed recentMoveTimestamp to prevent constant recreation
 
   // Helper functions
   const getTileColor = (tileType: number | string) => {
@@ -1178,25 +1193,19 @@ const GamePageContent = () => {
         console.log("🔥 [HEAVY DEBUG] ===== POLLING INTERVAL TRIGGERED =====");
         console.log("🔥 [HEAVY DEBUG] Current time:", new Date().toLocaleTimeString());
         console.log("🔥 [HEAVY DEBUG] About to call fetchGameStatus(), fetchAllPlayers()");
-        console.log("🔥 [HEAVY DEBUG] Will fetch player map?", isAuthenticated && jwtToken && isPlayer);
-        console.log("🔥 [HEAVY DEBUG] Current player state before polling:");
-        console.log("🔥 [HEAVY DEBUG]   - Position:", playerMap?.position);
-        console.log("🔥 [HEAVY DEBUG]   - Score:", playerMap?.score);
-        console.log("🔥 [HEAVY DEBUG]   - Moves remaining:", playerMap?.movesRemaining);
-        console.log("🔥 [HEAVY DEBUG]   - Mines remaining:", playerMap?.minesRemaining);
-        console.log("🔥 [HEAVY DEBUG]   - Time remaining:", timeRemaining);
-        console.log("🔥 [HEAVY DEBUG] ===== STARTING POLLING REQUESTS =====");
+        console.log("🔥 [HEAVY DEBUG] Will NOT fetch player map to avoid overwriting recent moves");
       }
 
       console.log("🔄 Polling update...");
+
+      // Call the latest versions of these functions
       fetchGameStatus();
       fetchAllPlayers();
 
-      // Only fetch player map if user is authenticated and a player
-      if (isAuthenticated && jwtToken && isPlayer) {
-        fetchPlayerMap();
-      }
-    }, 10000); // Slowed down to 10 seconds to reduce server load and debug issues
+      // DON'T fetch player map in polling - it overwrites recent moves!
+      // The player map is updated via move/mine responses and initial fetch
+      // If we need fresh player data, it's fetched on authentication change
+    }, 30000); // Slower polling for general game data
 
     console.log("✅ Polling interval created with ID:", interval);
 
@@ -1204,8 +1213,57 @@ const GamePageContent = () => {
       console.log("🛑 Clearing polling interval:", interval);
       clearInterval(interval);
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [hasClosed, hasPaidOut, isAuthenticated, jwtToken, isPlayer, fetchPlayerMap, fetchGameStatus, fetchAllPlayers]);
+  }, [hasClosed, hasPaidOut]); // Removed function dependencies to prevent constant recreation
+
+  // Lightweight timer update - only fetch timer data more frequently
+  useEffect(() => {
+    console.log("⏱️ Timer effect triggered with conditions:", { hasClosed, hasPaidOut });
+
+    if (!hasClosed || hasPaidOut) {
+      console.log("⏱️ Timer effect skipped - conditions not met");
+      return;
+    }
+
+    console.log("⏱️ Setting up timer update interval...");
+
+    const timerInterval = setInterval(async () => {
+      try {
+        console.log("⏱️ TIMER UPDATE TICK - fetching latest time...");
+
+        if (heavyDebug) {
+          console.log("🔥 [HEAVY DEBUG] ===== TIMER UPDATE =====");
+        }
+
+        const statusUrl = `${API_BASE}/status?gameId=${gameId}`;
+        const response = await fetch(statusUrl);
+        const data = await response.json();
+
+        console.log("⏱️ Timer response data:", data?.timer);
+
+        if (data.success && data.timer && typeof data.timer.timeRemaining === "number") {
+          console.log("⏱️ Updating timer from", timeRemainingRef.current, "to", data.timer.timeRemaining);
+          setTimeRemaining(data.timer.timeRemaining);
+          if (heavyDebug) {
+            console.log("🔥 [HEAVY DEBUG] Timer updated to:", data.timer.timeRemaining);
+          }
+        } else {
+          console.warn("⏱️ Timer update failed - invalid response:", data);
+        }
+      } catch (err) {
+        console.error("⏱️ Timer update error:", err);
+        if (heavyDebug) {
+          console.log("🔥 [HEAVY DEBUG] Timer update failed:", err);
+        }
+      }
+    }, 3000); // Update timer every 3 seconds for responsive countdown
+
+    console.log("✅ Timer interval created with ID:", timerInterval);
+
+    return () => {
+      console.log("🛑 Clearing timer interval:", timerInterval);
+      clearInterval(timerInterval);
+    };
+  }, [hasClosed, hasPaidOut, gameId]); // Don't include timeRemaining to avoid recreating interval
 
   // Fetch player map when authentication and player status change
   useEffect(() => {
@@ -1214,7 +1272,7 @@ const GamePageContent = () => {
       console.log("🔄 Triggering initial map fetch...");
       fetchPlayerMap();
     }
-  }, [canPlay, jwtToken, fetchPlayerMap]); // Added fetchPlayerMap back with useCallback
+  }, [canPlay, jwtToken]); // Removed fetchPlayerMap to prevent constant recreation
 
   // Memoize radar calculations to prevent re-renders
   const radarConfig = useMemo(() => {
@@ -1319,13 +1377,15 @@ const GamePageContent = () => {
     <>
       {/* Confetti Animation */}
       {showConfetti && typeof window !== "undefined" && (
-        <Confetti
-          width={window.innerWidth}
-          height={window.innerHeight}
-          recycle={false}
-          numberOfPieces={200}
-          gravity={0.3}
-        />
+        <div className="fixed inset-0 pointer-events-none z-[9999]">
+          <Confetti
+            width={window.innerWidth}
+            height={window.innerHeight}
+            recycle={false}
+            numberOfPieces={200}
+            gravity={0.3}
+          />
+        </div>
       )}
 
       <div className="flex items-center flex-col grow pt-10">
@@ -1591,7 +1651,7 @@ const GamePageContent = () => {
               <div className="mb-6">
                 <h3 className="text-lg font-semibold mb-3 text-center">
                   Score: {playerMap.score} | Moves: {playerMap.movesRemaining} | Mines: {playerMap.minesRemaining}
-                  {playerMap.timeRemaining !== undefined && <> | Time: {playerMap.timeRemaining}s</>}
+                  {timeRemaining !== null && <> | Time: {timeRemaining}s</>}
                 </h3>
                 <div className="grid grid-cols-5 gap-0 max-w-md mx-auto border-2 border-gray-400">
                   {Array.from({ length: 25 }, (_, index) => {
