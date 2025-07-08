@@ -1822,7 +1822,7 @@ const GamePageContent = () => {
                 </p>
 
                 <div className="space-y-3">
-                  <h3 className="text-xl font-semibold text-gray-800">Winners:</h3>
+                  <h3 className="text-xl font-semibold text-base-content">Winners:</h3>
                   {winners.map((winner, index) => {
                     const isConnectedUser = connectedAddress && winner.toLowerCase() === connectedAddress.toLowerCase();
                     return (
@@ -1830,14 +1830,14 @@ const GamePageContent = () => {
                         key={`${winner}-${index}`}
                         className={`p-3 rounded-lg border-2 ${
                           isConnectedUser
-                            ? "bg-yellow-100 border-yellow-400 font-bold text-yellow-800"
-                            : "bg-white border-gray-200"
+                            ? "bg-yellow-100 dark:bg-yellow-900/30 border-yellow-400 font-bold text-yellow-800 dark:text-yellow-300"
+                            : "bg-base-200 border-base-300"
                         }`}
                       >
                         <div className="flex items-center justify-between">
                           <Address address={winner} />
                           <span
-                            className={`text-lg font-bold ${isConnectedUser ? "text-yellow-600" : "text-green-600"}`}
+                            className={`text-lg font-bold ${isConnectedUser ? "text-yellow-600 dark:text-yellow-400" : "text-green-600 dark:text-green-400"}`}
                           >
                             {formatEther(payoutAmount || 0n)} ETH
                             {isConnectedUser && " 🏆"}
@@ -1863,10 +1863,10 @@ const GamePageContent = () => {
 
           {/* No wallet connected */}
           {!connectedAddress && (
-            <div className="bg-blue-50 border-l-4 border-blue-400 p-4 rounded">
+            <div className="bg-blue-50 dark:bg-blue-900/20 border-l-4 border-blue-400 p-4 rounded">
               <div className="flex">
                 <div className="ml-3">
-                  <p className="text-sm text-blue-700">
+                  <p className="text-sm text-blue-700 dark:text-blue-300">
                     Connect your wallet to see if you&apos;re registered as a player in this game.
                   </p>
                 </div>
@@ -1876,10 +1876,12 @@ const GamePageContent = () => {
 
           {/* Wallet connected but no ETH */}
           {connectedAddress && !hasEth && (
-            <div className="bg-red-50 border-l-4 border-red-400 p-6 rounded mb-6">
+            <div className="bg-red-50 dark:bg-red-900/20 border-l-4 border-red-400 p-6 rounded mb-6">
               <div className="flex flex-col items-center text-center space-y-4">
-                <p className="text-lg font-semibold text-red-800 mb-2">Your wallet doesn&apos;t have any ETH</p>
-                <p className="text-sm text-red-700 mb-4">Please send some ETH to this address:</p>
+                <p className="text-lg font-semibold text-red-800 dark:text-red-300 mb-2">
+                  Your wallet doesn&apos;t have any ETH
+                </p>
+                <p className="text-sm text-red-700 dark:text-red-400 mb-4">Please send some ETH to this address:</p>
 
                 {/* QR Code */}
                 <div className="bg-white p-4 rounded-lg shadow-sm">
@@ -2019,10 +2021,10 @@ const GamePageContent = () => {
           {canPlay && playerMap && (
             <div className="bg-base-100 rounded-lg p-6 shadow-lg mb-6">
               <div className="flex justify-between items-center mb-4">
-                <h2 className="text-xl font-bold">Your Game View</h2>
+                <h2 className="text-xl font-bold text-base-content">Your Game View</h2>
                 <div className="text-right">
-                  <p className="text-sm text-gray-600">Total Pot</p>
-                  <p className="text-lg font-bold text-green-600">
+                  <p className="text-sm text-base-content/70">Total Pot</p>
+                  <p className="text-lg font-bold text-green-600 dark:text-green-400">
                     {formatEther((stakeAmount || 0n) * (playerCount || 0n))} ETH
                   </p>
                 </div>
@@ -2237,11 +2239,11 @@ const GamePageContent = () => {
 
           {/* Authentication Status - Show below map when authenticated */}
           {connectedAddress && isPlayer && hasEth && isAuthenticated && (
-            <div className="bg-green-50 border-l-4 border-green-400 p-4 rounded mb-6">
+            <div className="bg-green-50 dark:bg-green-900/20 border-l-4 border-green-400 p-4 rounded mb-6">
               <div className="flex items-center justify-between">
                 <div className="flex items-center space-x-3">
-                  <span className="text-green-600 font-semibold">✅ Authenticated</span>
-                  <span className="text-sm text-green-700">Ready to play!</span>
+                  <span className="text-green-600 dark:text-green-400 font-semibold">✅ Authenticated</span>
+                  <span className="text-sm text-green-700 dark:text-green-300">Ready to play!</span>
                 </div>
                 <button className="btn btn-outline btn-sm" onClick={signOut}>
                   Sign Out
@@ -2253,7 +2255,9 @@ const GamePageContent = () => {
           {/* Players List - Consolidated */}
           {(allPlayers.length > 0 || (contractPlayers && contractPlayers.length > 0)) && (
             <div className="bg-base-100 rounded-lg p-6 mb-6 shadow-lg">
-              <h2 className="text-xl font-bold mb-4">Players ({contractPlayers?.length || allPlayers.length})</h2>
+              <h2 className="text-xl font-bold mb-4 text-base-content">
+                Players ({contractPlayers?.length || allPlayers.length})
+              </h2>
               <div className="space-y-3">
                 {allPlayers.length > 0
                   ? allPlayers.map(player => (
@@ -2268,16 +2272,22 @@ const GamePageContent = () => {
                         </div>
                         <div className="grid grid-cols-1 md:grid-cols-3 gap-2 text-sm">
                           <div>
-                            <span className="text-gray-600">Score:</span>
-                            <span className="ml-1 font-semibold text-green-600">{player.score}</span>
+                            <span className="text-base-content/70">Score:</span>
+                            <span className="ml-1 font-semibold text-green-600 dark:text-green-400">
+                              {player.score}
+                            </span>
                           </div>
                           <div>
-                            <span className="text-gray-600">Moves:</span>
-                            <span className="ml-1 font-semibold text-blue-600">{player.movesRemaining}</span>
+                            <span className="text-base-content/70">Moves:</span>
+                            <span className="ml-1 font-semibold text-blue-600 dark:text-blue-400">
+                              {player.movesRemaining}
+                            </span>
                           </div>
                           <div>
-                            <span className="text-gray-600">Mines:</span>
-                            <span className="ml-1 font-semibold text-orange-600">{player.minesRemaining}</span>
+                            <span className="text-base-content/70">Mines:</span>
+                            <span className="ml-1 font-semibold text-orange-600 dark:text-orange-400">
+                              {player.minesRemaining}
+                            </span>
                           </div>
                         </div>
                       </div>
@@ -2287,7 +2297,7 @@ const GamePageContent = () => {
                         <div className="flex justify-between items-start mb-2">
                           <Address address={playerAddress} />
                           <div className="flex items-center space-x-2">
-                            <span className="px-2 py-1 rounded text-xs bg-gray-200">Joined</span>
+                            <span className="px-2 py-1 rounded text-xs bg-base-300 text-base-content/70">Joined</span>
                             {connectedAddress && playerAddress.toLowerCase() === connectedAddress.toLowerCase() && (
                               <span className="badge badge-primary">You</span>
                             )}
@@ -2301,30 +2311,34 @@ const GamePageContent = () => {
 
           {/* Game Info */}
           <div className="bg-base-100 rounded-lg p-6 shadow-lg mb-6">
-            <h2 className="text-2xl font-bold mb-4">Game Information</h2>
+            <h2 className="text-2xl font-bold mb-4 text-base-content">Game Information</h2>
             <div className="grid md:grid-cols-2 gap-6">
               <div>
-                <p className="text-sm text-gray-600 mb-1">Gamemaster</p>
+                <p className="text-sm text-base-content/70 mb-1">Gamemaster</p>
                 <Address address={gamemaster} />
               </div>
               <div>
-                <p className="text-sm text-gray-600 mb-1">Creator</p>
+                <p className="text-sm text-base-content/70 mb-1">Creator</p>
                 <Address address={creator} />
                 {isCreator && (
-                  <span className="ml-2 px-2 py-1 bg-blue-100 text-blue-800 text-xs rounded-full">You</span>
+                  <span className="ml-2 px-2 py-1 bg-blue-100 dark:bg-blue-900/30 text-blue-800 dark:text-blue-300 text-xs rounded-full">
+                    You
+                  </span>
                 )}
               </div>
               <div>
-                <p className="text-sm text-gray-600 mb-1">Stake Amount</p>
-                <p className="text-xl font-bold text-blue-600">{formatEther(stakeAmount || 0n)} ETH</p>
+                <p className="text-sm text-base-content/70 mb-1">Stake Amount</p>
+                <p className="text-xl font-bold text-blue-600 dark:text-blue-400">
+                  {formatEther(stakeAmount || 0n)} ETH
+                </p>
               </div>
               <div>
-                <p className="text-sm text-gray-600 mb-1">Players Joined</p>
-                <p className="text-xl font-bold text-purple-600">{playerCount?.toString() || 0}</p>
+                <p className="text-sm text-base-content/70 mb-1">Players Joined</p>
+                <p className="text-xl font-bold text-purple-600 dark:text-purple-400">{playerCount?.toString() || 0}</p>
               </div>
               <div>
-                <p className="text-sm text-gray-600 mb-1">Map Size</p>
-                <p className="text-xl font-bold text-orange-600">
+                <p className="text-sm text-base-content/70 mb-1">Map Size</p>
+                <p className="text-xl font-bold text-orange-600 dark:text-orange-400">
                   {contractMapSize && contractMapSize > 0
                     ? `${contractMapSize}×${contractMapSize}`
                     : hasClosed && playerCount && playerCount > 0n
@@ -2335,10 +2349,12 @@ const GamePageContent = () => {
                 </p>
               </div>
               <div>
-                <p className="text-sm text-gray-600 mb-1">Status</p>
+                <p className="text-sm text-base-content/70 mb-1">Status</p>
                 <span
                   className={`px-3 py-1 rounded-full text-sm font-medium ${
-                    open ? "bg-green-100 text-green-800" : "bg-gray-100 text-gray-800"
+                    open
+                      ? "bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300"
+                      : "bg-base-200 text-base-content/70"
                   }`}
                 >
                   {open ? "Open" : "Closed"}
@@ -2346,7 +2362,7 @@ const GamePageContent = () => {
               </div>
               {(hasCommitted || hasRevealed) && (
                 <div>
-                  <p className="text-sm text-gray-600 mb-1">Commit-Reveal</p>
+                  <p className="text-sm text-base-content/70 mb-1">Commit-Reveal</p>
                   <div
                     className="cursor-help"
                     title={
@@ -2358,27 +2374,29 @@ const GamePageContent = () => {
                     }
                   >
                     {hasRevealed ? (
-                      <span className="text-green-600">✅ Hash revealed: {randomHash?.slice(0, 12)}...</span>
+                      <span className="text-green-600 dark:text-green-400">
+                        ✅ Hash revealed: {randomHash?.slice(0, 12)}...
+                      </span>
                     ) : hasCommitted ? (
-                      <span className="text-yellow-600">Hash committed, waiting for reveal.</span>
+                      <span className="text-yellow-600 dark:text-yellow-400">Hash committed, waiting for reveal.</span>
                     ) : (
-                      <span className="text-gray-600">❌ Not Committed</span>
+                      <span className="text-base-content/70">❌ Not Committed</span>
                     )}
                   </div>
                 </div>
               )}
               {hasOpened && !hasClosed && timeUntilAbandonmentTimeout > 0n && (
                 <div>
-                  <p className="text-sm text-gray-600 mb-1">Abandonment Timeout</p>
-                  <p className="text-sm text-orange-600">
+                  <p className="text-sm text-base-content/70 mb-1">Abandonment Timeout</p>
+                  <p className="text-sm text-orange-600 dark:text-orange-400">
                     {Math.floor(Number(timeUntilAbandonmentTimeout))} seconds until anyone can start the game
                   </p>
                 </div>
               )}
               {hasClosed && timeUntilWithdrawal > 0n && !hasPaidOut && (
                 <div>
-                  <p className="text-sm text-gray-600 mb-1">Withdrawal Timeout</p>
-                  <p className="text-sm text-red-600">
+                  <p className="text-sm text-base-content/70 mb-1">Withdrawal Timeout</p>
+                  <p className="text-sm text-red-600 dark:text-red-400">
                     {Math.floor(Number(timeUntilWithdrawal))} seconds until players can withdraw
                   </p>
                 </div>
@@ -2389,22 +2407,22 @@ const GamePageContent = () => {
           {/* Generated Map Display */}
           {generateDeterministicMap && (
             <div className="bg-base-100 rounded-lg p-6 shadow-lg mb-6">
-              <h2 className="text-2xl font-bold mb-4">Generated Map</h2>
+              <h2 className="text-2xl font-bold mb-4 text-base-content">Generated Map</h2>
               <div className="flex flex-col items-center space-y-4">
                 {/* Map Display */}
-                <div className="bg-white p-4 rounded-lg shadow-sm border">
+                <div className="bg-base-200 p-4 rounded-lg shadow-sm border border-base-300">
                   <div className="mb-4 text-center">
-                    <p className="text-sm text-gray-600">
+                    <p className="text-sm text-base-content/70">
                       Map Size: {generateDeterministicMap.size}×{generateDeterministicMap.size}
                     </p>
-                    <p className="text-sm text-gray-600">
+                    <p className="text-sm text-base-content/70">
                       Generated from random hash: {randomHash?.slice(0, 12)}...{randomHash?.slice(-8)}
                     </p>
                     {randomHash && (
-                      <div className="mt-2 p-2 bg-gray-50 rounded text-xs font-mono break-all">
-                        <span className="text-gray-500">Full Random Hash:</span>
+                      <div className="mt-2 p-2 bg-base-300 rounded text-xs font-mono break-all">
+                        <span className="text-base-content/70">Full Random Hash:</span>
                         <br />
-                        {randomHash}
+                        <span className="text-base-content">{randomHash}</span>
                       </div>
                     )}
                   </div>
@@ -2501,26 +2519,26 @@ const GamePageContent = () => {
                     <div className="flex justify-center space-x-4 text-xs">
                       <div className="flex items-center space-x-1">
                         <div className="w-3 h-3 bg-blue-200 border"></div>
-                        <span>Common</span>
+                        <span className="text-base-content">Common</span>
                       </div>
                       <div className="flex items-center space-x-1">
                         <div className="w-3 h-3 bg-green-200 border"></div>
-                        <span>Uncommon</span>
+                        <span className="text-base-content">Uncommon</span>
                       </div>
                       <div className="flex items-center space-x-1">
                         <div className="w-3 h-3 border" style={{ backgroundColor: "#ff6b35" }}></div>
-                        <span>Rare</span>
+                        <span className="text-base-content">Rare</span>
                       </div>
                       <div className="flex items-center space-x-1">
                         <div className="w-3 h-3 border" style={{ backgroundColor: "#fbbf24" }}></div>
-                        <span>Treasure</span>
+                        <span className="text-base-content">Treasure</span>
                       </div>
                     </div>
 
                     {/* Map Verification Status - Single Line */}
                     {mapVerification && (
                       <div className="flex justify-center text-sm">
-                        <span>
+                        <span className="text-base-content">
                           {mapVerification.isValid ? "✅" : "❌"}
                           {mapVerification.isValid ? " Map Verified" : " Map Discrepancy Detected"} • Explored tiles:{" "}
                           {mapVerification.totalExplored} • Matches: {mapVerification.matchCount}
@@ -2534,8 +2552,8 @@ const GamePageContent = () => {
 
                 {/* Player Positions */}
                 {generatePlayerPositions && (
-                  <div className="bg-gray-50 p-4 rounded-lg w-full max-w-md">
-                    <h3 className="font-semibold mb-2">Player Starting Positions</h3>
+                  <div className="bg-base-200 p-4 rounded-lg w-full max-w-md">
+                    <h3 className="font-semibold mb-2 text-base-content">Player Starting Positions</h3>
                     <div className="space-y-2 max-h-32 overflow-y-auto">
                       {(() => {
                         const playerEntries: Array<[string, { x: number; y: number }]> = Array.from(
@@ -2546,16 +2564,16 @@ const GamePageContent = () => {
                             <div className="flex items-center mr-2">
                               <ClientOnlyWrapper
                                 fallback={
-                                  <span>
+                                  <span className="text-base-content">
                                     {playerAddress.slice(0, 6)}...{playerAddress.slice(-4)}
                                   </span>
                                 }
                               >
                                 <Address address={playerAddress} />
                               </ClientOnlyWrapper>
-                              <span>:</span>
+                              <span className="text-base-content">:</span>
                             </div>
-                            <span className="font-mono">
+                            <span className="font-mono text-base-content">
                               ({position.x}, {position.y})
                             </span>
                           </div>
@@ -2571,16 +2589,16 @@ const GamePageContent = () => {
           {/* Share Game - Only show if map not generated */}
           {!generateDeterministicMap && (
             <div className="bg-base-100 rounded-lg p-6 shadow-lg mb-6">
-              <h2 className="text-2xl font-bold mb-4">Share Game</h2>
+              <h2 className="text-2xl font-bold mb-4 text-base-content">Share Game</h2>
               <div className="flex flex-col items-center space-y-4">
                 {/* QR Code */}
-                <div className="bg-white p-4 rounded-lg shadow-sm">
+                <div className="bg-base-200 p-4 rounded-lg shadow-sm">
                   <QRCodeSVG value={typeof window !== "undefined" ? window.location.href : ""} size={180} />
                 </div>
 
                 {/* URL with Copy Button */}
-                <div className="flex items-center space-x-2 bg-gray-50 p-3 rounded-lg w-full max-w-md">
-                  <span className="text-sm text-gray-700 truncate flex-1">
+                <div className="flex items-center space-x-2 bg-base-200 p-3 rounded-lg w-full max-w-md">
+                  <span className="text-sm text-base-content/70 truncate flex-1">
                     {typeof window !== "undefined" ? window.location.href : ""}
                   </span>
                   <button

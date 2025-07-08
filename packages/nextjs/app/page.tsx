@@ -56,8 +56,8 @@ const GameListContent = () => {
           {/* Games List */}
           <div className="bg-base-100 rounded-lg p-6 shadow-lg">
             <div className="flex justify-between items-center mb-6">
-              <h2 className="text-2xl font-bold">Active Games</h2>
-              <div className="text-sm text-gray-600">
+              <h2 className="text-2xl font-bold text-base-content">Active Games</h2>
+              <div className="text-sm text-base-content/70">
                 {nextGameId && `${Number(nextGameId) - 1} total games created`}
               </div>
             </div>
@@ -65,7 +65,7 @@ const GameListContent = () => {
             {loading ? (
               <div className="text-center py-8">
                 <div className="loading loading-spinner loading-lg"></div>
-                <p className="mt-4">Loading games...</p>
+                <p className="mt-4 text-base-content">Loading games...</p>
               </div>
             ) : nextGameId && Number(nextGameId) > 1 ? (
               <div className="grid gap-4">
@@ -77,18 +77,20 @@ const GameListContent = () => {
               </div>
             ) : (
               <div className="text-center py-8">
-                <p className="text-gray-500 text-lg">No active games found</p>
-                <p className="text-sm text-gray-400 mt-2">Be the first to create a game!</p>
+                <p className="text-base-content/70 text-lg">No active games found</p>
+                <p className="text-sm text-base-content/50 mt-2">Be the first to create a game!</p>
               </div>
             )}
           </div>
 
           {/* Connect Wallet Prompt */}
           {!connectedAddress && (
-            <div className="bg-blue-50 border-l-4 border-blue-400 p-6 rounded mt-8">
+            <div className="bg-blue-50 dark:bg-blue-900/20 border-l-4 border-blue-400 p-6 rounded mt-8">
               <div className="flex">
                 <div className="ml-3">
-                  <p className="text-sm text-blue-700">Connect your wallet to create games or join existing ones.</p>
+                  <p className="text-sm text-blue-700 dark:text-blue-300">
+                    Connect your wallet to create games or join existing ones.
+                  </p>
                 </div>
               </div>
             </div>
@@ -110,34 +112,34 @@ const GameCard = ({ gameId }: { gameId: number }) => {
 
   if (!gameInfo) {
     return (
-      <div className="border border-gray-200 rounded-lg p-4 animate-pulse">
+      <div className="border border-base-300 rounded-lg p-4 animate-pulse">
         <div className="flex justify-between items-start mb-3">
           <div className="flex items-center space-x-3">
-            <div className="w-8 h-8 bg-gray-300 rounded"></div>
+            <div className="w-8 h-8 bg-base-300 rounded"></div>
             <div>
-              <div className="w-20 h-3 bg-gray-300 rounded mb-1"></div>
-              <div className="w-32 h-4 bg-gray-300 rounded"></div>
+              <div className="w-20 h-3 bg-base-300 rounded mb-1"></div>
+              <div className="w-32 h-4 bg-base-300 rounded"></div>
             </div>
           </div>
-          <div className="w-16 h-6 bg-gray-300 rounded-full"></div>
+          <div className="w-16 h-6 bg-base-300 rounded-full"></div>
         </div>
         <div className="grid grid-cols-2 md:grid-cols-3 gap-4 mb-4">
           <div className="text-center">
-            <div className="w-20 h-4 bg-gray-300 rounded mx-auto mb-1"></div>
-            <div className="w-16 h-6 bg-gray-300 rounded mx-auto"></div>
+            <div className="w-20 h-4 bg-base-300 rounded mx-auto mb-1"></div>
+            <div className="w-16 h-6 bg-base-300 rounded mx-auto"></div>
           </div>
           <div className="text-center">
-            <div className="w-16 h-4 bg-gray-300 rounded mx-auto mb-1"></div>
-            <div className="w-8 h-6 bg-gray-300 rounded mx-auto"></div>
+            <div className="w-16 h-4 bg-base-300 rounded mx-auto mb-1"></div>
+            <div className="w-8 h-6 bg-base-300 rounded mx-auto"></div>
           </div>
           <div className="text-center md:col-span-1 col-span-2">
-            <div className="w-12 h-4 bg-gray-300 rounded mx-auto mb-1"></div>
-            <div className="w-32 h-6 bg-gray-300 rounded mx-auto"></div>
+            <div className="w-12 h-4 bg-base-300 rounded mx-auto mb-1"></div>
+            <div className="w-32 h-6 bg-base-300 rounded mx-auto"></div>
           </div>
         </div>
-        <div className="flex justify-between items-center pt-3 border-t">
-          <div className="w-20 h-4 bg-gray-300 rounded"></div>
-          <div className="w-24 h-8 bg-gray-300 rounded"></div>
+        <div className="flex justify-between items-center pt-3 border-t border-base-300">
+          <div className="w-20 h-4 bg-base-300 rounded"></div>
+          <div className="w-24 h-8 bg-base-300 rounded"></div>
         </div>
       </div>
     );
@@ -155,19 +157,21 @@ const GameCard = ({ gameId }: { gameId: number }) => {
   }
 
   return (
-    <div className="border border-gray-200 rounded-lg p-4 hover:shadow-lg transition-shadow">
+    <div className="border border-base-300 rounded-lg p-4 hover:shadow-lg transition-shadow">
       <div className="flex justify-between items-start mb-3">
         <div className="flex items-center space-x-3">
           <span className="text-2xl font-bold text-primary">#{gameId}</span>
           <div>
-            <p className="text-sm text-gray-600">Gamemaster</p>
+            <p className="text-sm text-base-content/70">Gamemaster</p>
             <Address address={gamemaster} />
           </div>
         </div>
         <div className="text-right">
           <span
             className={`px-3 py-1 rounded-full text-sm font-medium ${
-              open ? "bg-green-100 text-green-800" : "bg-gray-100 text-gray-800"
+              open
+                ? "bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300"
+                : "bg-base-200 text-base-content/70"
             }`}
           >
             {open ? "Open" : "Closed"}
@@ -177,20 +181,20 @@ const GameCard = ({ gameId }: { gameId: number }) => {
 
       <div className="grid grid-cols-2 md:grid-cols-3 gap-4 mb-4">
         <div className="text-center">
-          <p className="text-sm text-gray-600">Stake Amount</p>
-          <p className="text-lg font-semibold text-blue-600">{formatEther(stakeAmount)} ETH</p>
+          <p className="text-sm text-base-content/70">Stake Amount</p>
+          <p className="text-lg font-semibold text-blue-600 dark:text-blue-400">{formatEther(stakeAmount)} ETH</p>
         </div>
         <div className="text-center">
-          <p className="text-sm text-gray-600">Players</p>
-          <p className="text-lg font-semibold text-purple-600">{playerCount.toString()}</p>
+          <p className="text-sm text-base-content/70">Players</p>
+          <p className="text-lg font-semibold text-purple-600 dark:text-purple-400">{playerCount.toString()}</p>
         </div>
         <div className="text-center md:col-span-1 col-span-2">
-          <p className="text-sm text-gray-600">Status</p>
-          <p className="text-lg font-semibold">{open ? "🟢 Accepting Players" : "🔴 Game Closed"}</p>
+          <p className="text-sm text-base-content/70">Status</p>
+          <p className="text-lg font-semibold text-base-content">{open ? "🟢 Accepting Players" : "🔴 Game Closed"}</p>
         </div>
       </div>
 
-      <div className="flex justify-end items-center pt-3 border-t">
+      <div className="flex justify-end items-center pt-3 border-t border-base-300">
         <Link href={`/game/${gameId}`} className="btn btn-sm btn-primary">
           View Game
         </Link>
@@ -206,7 +210,7 @@ const Home: NextPage = () => {
         <div className="flex items-center justify-center min-h-screen">
           <div className="text-center">
             <div className="loading loading-spinner loading-lg"></div>
-            <p className="mt-4">Loading games...</p>
+            <p className="mt-4 text-base-content">Loading games...</p>
           </div>
         </div>
       }

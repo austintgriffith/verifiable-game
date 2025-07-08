@@ -125,7 +125,7 @@ const CreateGameContent = () => {
         <div className="px-5 w-full max-w-2xl">
           {/* Header */}
           <div className="text-center mb-8">
-            <h1 className="text-4xl font-bold mb-4">⛏️ Create New Game</h1>
+            <h1 className="text-4xl font-bold mb-4 text-base-content">⛏️ Create New Game</h1>
           </div>
 
           {/* Create Game Form */}
@@ -133,18 +133,20 @@ const CreateGameContent = () => {
             <div className="space-y-6">
               {/* Gamemaster Address */}
               <div>
-                <label className="block text-sm font-semibold mb-2">Gamemaster Address</label>
+                <label className="block text-sm font-semibold mb-2 text-base-content">Gamemaster Address</label>
                 <AddressInput value={gamemaster} onChange={setGamemaster} placeholder="Enter gamemaster address" />
-                <p className="text-sm text-gray-500 mt-1">
+                <p className="text-sm text-base-content/70 mt-1">
                   The address that will have control over this game (commit/reveal, open/close, payout)
                 </p>
               </div>
 
               {/* Stake Amount */}
               <div>
-                <label className="block text-sm font-semibold mb-2">Stake Amount (ETH)</label>
+                <label className="block text-sm font-semibold mb-2 text-base-content">Stake Amount (ETH)</label>
                 <EtherInput value={stakeAmount} onChange={setStakeAmount} placeholder="0.001" />
-                <p className="text-sm text-gray-500 mt-1">The amount of ETH players must stake to join this game</p>
+                <p className="text-sm text-base-content/70 mt-1">
+                  The amount of ETH players must stake to join this game
+                </p>
               </div>
 
               {/* Error Display */}
@@ -201,10 +203,12 @@ const CreateGameContent = () => {
 
               {/* Connect Wallet Prompt */}
               {!connectedAddress && (
-                <div className="bg-yellow-50 border-l-4 border-yellow-400 p-4 rounded">
+                <div className="bg-yellow-50 dark:bg-yellow-900/20 border-l-4 border-yellow-400 p-4 rounded">
                   <div className="flex">
                     <div className="ml-3">
-                      <p className="text-sm text-yellow-700">Please connect your wallet to create a game.</p>
+                      <p className="text-sm text-yellow-700 dark:text-yellow-300">
+                        Please connect your wallet to create a game.
+                      </p>
                     </div>
                   </div>
                 </div>
@@ -224,7 +228,7 @@ const CreateGame: NextPage = () => {
         <div className="flex items-center justify-center min-h-screen">
           <div className="text-center">
             <div className="loading loading-spinner loading-md"></div>
-            <p className="mt-4">Loading...</p>
+            <p className="mt-4 text-base-content">Loading...</p>
           </div>
         </div>
       }
