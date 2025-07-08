@@ -13,8 +13,8 @@ import { Address } from "~~/components/scaffold-eth";
 import { useDeployedContractInfo, useScaffoldReadContract, useScaffoldWriteContract } from "~~/hooks/scaffold-eth";
 import { useWatchBalance } from "~~/hooks/scaffold-eth/useWatchBalance";
 
-//const API_BASE = "https://slop.computer:8000";
-const API_BASE = "http://localhost:8000";
+const API_BASE = "https://slop.computer:8000";
+//const API_BASE = "http://localhost:8000";
 
 // Heavy debug flag - set to true to log all server communications
 const heavyDebug = true;
