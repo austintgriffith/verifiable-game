@@ -413,26 +413,30 @@ const GamePageContent = () => {
   // Commit-reveal state from comprehensive contract data
   const committedHash = gameState?.[8] as string | undefined;
   const commitBlockNumber = gameState?.[9] as bigint | undefined;
+  // revealValue = gameState?.[10] (available but not currently used)
   const randomHash = gameState?.[11] as string | undefined;
   const hasCommitted = (gameState?.[12] as boolean | undefined) || false;
   const hasRevealed = (gameState?.[13] as boolean | undefined) || false;
-  const contractMapSize = gameState?.[14] as bigint | undefined;
+  // hasStoredBlockHash = gameState?.[14] (available but not currently used)
+  const contractMapSize = gameState?.[15] as bigint | undefined;
 
   // Payout state from comprehensive contract data
-  const winners = useMemo(() => (gameState?.[15] as string[] | undefined) || [], [gameState]);
-  const payoutAmount = (gameState?.[16] as bigint | undefined) || 0n;
-  const hasPaidOut = (gameState?.[17] as boolean | undefined) || false;
+  const winners = useMemo(() => (gameState?.[16] as string[] | undefined) || [], [gameState]);
+  const payoutAmount = (gameState?.[17] as bigint | undefined) || 0n;
+  const hasPaidOut = (gameState?.[18] as boolean | undefined) || false;
 
   // Abandonment state from comprehensive contract data
-  const isAbandoned = (gameState?.[18] as boolean | undefined) || false;
-  const timeUntilAbandonmentTimeout = (gameState?.[19] as bigint | undefined) || 0n;
+  const isAbandoned = (gameState?.[19] as boolean | undefined) || false;
+  const timeUntilAbandonmentTimeout = (gameState?.[20] as bigint | undefined) || 0n;
 
   // Withdrawal state from comprehensive contract data
-  const canWithdrawNow = (gameState?.[22] as boolean | undefined) || false;
-  const timeUntilWithdrawal = (gameState?.[23] as bigint | undefined) || 0n;
+  // startTime = gameState?.[21] (available but not currently used)
+  // canWithdraw = gameState?.[22] (available but not currently used)
+  const canWithdrawNow = (gameState?.[23] as boolean | undefined) || false;
+  const timeUntilWithdrawal = (gameState?.[24] as bigint | undefined) || 0n;
 
   // Player-specific state from comprehensive contract data
-  const hasWithdrawn = (gameState?.[24] as boolean | undefined) || false;
+  const hasWithdrawn = (gameState?.[25] as boolean | undefined) || false;
 
   // Map size - prioritize contract data when available, fallback to calculation
   const mapSize = useMemo(() => {

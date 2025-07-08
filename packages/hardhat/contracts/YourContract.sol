@@ -30,10 +30,12 @@ contract YourContract {
         // Commit-Reveal System State Variables
         bytes32 committedHash;
         uint256 commitBlockNumber;
+        bytes32 commitBlockHash; // Store the actual block hash to avoid 256-block limitation
         bytes32 revealValue;
         bytes32 randomHash;
         bool hasCommitted;
         bool hasRevealed;
+        bool hasStoredBlockHash; // Track if block hash has been stored
         uint256 mapSize;
         
         // Payout System State Variables
@@ -62,6 +64,7 @@ contract YourContract {
     event GameCreated(uint256 indexed gameId, address indexed gamemaster, address indexed creator, uint256 stakeAmount);
     event HashCommitted(uint256 indexed gameId, bytes32 indexed committedHash, uint256 nextBlockNumber);
     event HashRevealed(uint256 indexed gameId, bytes32 indexed reveal, bytes32 indexed randomHash);
+    event BlockHashStored(uint256 indexed gameId, bytes32 blockHash);
     event GameOpened(uint256 indexed gameId);
     event GameClosed(uint256 indexed gameId, uint256 startTime, uint256 mapSize);
     event PlayerJoined(uint256 indexed gameId, address indexed player);
@@ -190,8 +193,8 @@ contract YourContract {
         require(games[gameId].hasCommitted, "No hash has been committed for this game");
         require(games[gameId].hasClosed, "Game must be closed before accessing commit block hash");
         
-        bytes32 blockHash = blockhash(games[gameId].commitBlockNumber);
-        require(blockHash != bytes32(0), "Commit block hash not available (too old)");
+        bytes32 blockHash = games[gameId].commitBlockHash;
+        require(blockHash != bytes32(0), "Commit block hash not available (too old or not stored)");
         
         return blockHash;
     }
@@ -223,6 +226,30 @@ contract YourContract {
     }
 
     /**
+     * Function that allows the gamemaster to store the commit block hash
+     * This should be called immediately after commitHash to ensure the block hash is captured
+     * before the 256-block limitation makes it unavailable
+     * Can only be called once per game and only after a hash has been committed
+     *
+     * @param gameId The ID of the game
+     */
+    function storeCommitBlockHash(uint256 gameId) public isGamemaster(gameId) {
+        require(games[gameId].hasCommitted, "No hash has been committed yet");
+        require(!games[gameId].hasStoredBlockHash, "Block hash has already been stored");
+        require(block.number >= games[gameId].commitBlockNumber, "Must wait for the commit block to be mined");
+        
+        // Get the block hash for the commit block
+        bytes32 blockHash = blockhash(games[gameId].commitBlockNumber);
+        require(blockHash != bytes32(0), "Commit block hash not available (too old or invalid)");
+        
+        // Store the block hash
+        games[gameId].commitBlockHash = blockHash;
+        games[gameId].hasStoredBlockHash = true;
+        
+        emit BlockHashStored(gameId, blockHash);
+    }
+
+    /**
      * Function that allows the gamemaster to reveal the committed value
      * Verifies the reveal against the commit and generates randomHash using blockhash + reveal
      * The randomHash is used for map generation and must match what the server calculated
@@ -244,7 +271,7 @@ contract YourContract {
         games[gameId].hasRevealed = true;
 
         // Calculate randomHash using blockhash and reveal value
-        bytes32 blockHash = blockhash(games[gameId].commitBlockNumber);
+        bytes32 blockHash = games[gameId].commitBlockHash;
         require(blockHash != bytes32(0), "Block hash not available for randomHash calculation");
         games[gameId].randomHash = keccak256(abi.encodePacked(blockHash, _reveal));
 
@@ -261,6 +288,7 @@ contract YourContract {
         bytes32 _randomHash,
         bool _hasCommitted,
         bool _hasRevealed,
+        bool _hasStoredBlockHash,
         uint256 _mapSize
     ) {
         require(games[gameId].gamemaster != address(0), "Game does not exist");
@@ -271,6 +299,7 @@ contract YourContract {
             games[gameId].randomHash,
             games[gameId].hasCommitted,
             games[gameId].hasRevealed,
+            games[gameId].hasStoredBlockHash,
             games[gameId].mapSize
         );
     }
@@ -525,6 +554,7 @@ contract YourContract {
         bytes32 randomHash,
         bool hasCommitted,
         bool hasRevealed,
+        bool hasStoredBlockHash,
         uint256 mapSize,
         
         // Payout info (from getPayoutInfo)
@@ -600,6 +630,7 @@ contract YourContract {
             games[gameId].randomHash,
             games[gameId].hasCommitted,
             games[gameId].hasRevealed,
+            games[gameId].hasStoredBlockHash,
             games[gameId].mapSize,
             
             // Payout info

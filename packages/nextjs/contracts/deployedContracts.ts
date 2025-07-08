@@ -7,12 +7,31 @@ import { GenericContractsDeclaration } from "~~/utils/scaffold-eth/contract";
 const deployedContracts = {
   8453: {
     YourContract: {
-      address: "0x3351d078E2931ED22911B1517BFB23ebeEeA5447",
+      address: "0x30079c0C1c7fC32452225f0F5000B87b2cb1110D",
       abi: [
         {
           inputs: [],
           stateMutability: "nonpayable",
           type: "constructor",
+        },
+        {
+          anonymous: false,
+          inputs: [
+            {
+              indexed: true,
+              internalType: "uint256",
+              name: "gameId",
+              type: "uint256",
+            },
+            {
+              indexed: false,
+              internalType: "bytes32",
+              name: "blockHash",
+              type: "bytes32",
+            },
+          ],
+          name: "BlockHashStored",
+          type: "event",
         },
         {
           anonymous: false,
@@ -348,6 +367,11 @@ const deployedContracts = {
             },
             {
               internalType: "bytes32",
+              name: "commitBlockHash",
+              type: "bytes32",
+            },
+            {
+              internalType: "bytes32",
               name: "revealValue",
               type: "bytes32",
             },
@@ -364,6 +388,11 @@ const deployedContracts = {
             {
               internalType: "bool",
               name: "hasRevealed",
+              type: "bool",
+            },
+            {
+              internalType: "bool",
+              name: "hasStoredBlockHash",
               type: "bool",
             },
             {
@@ -457,6 +486,11 @@ const deployedContracts = {
             {
               internalType: "bool",
               name: "_hasRevealed",
+              type: "bool",
+            },
+            {
+              internalType: "bool",
+              name: "_hasStoredBlockHash",
               type: "bool",
             },
             {
@@ -564,6 +598,11 @@ const deployedContracts = {
             {
               internalType: "bool",
               name: "hasRevealed",
+              type: "bool",
+            },
+            {
+              internalType: "bool",
+              name: "hasStoredBlockHash",
               type: "bool",
             },
             {
@@ -961,6 +1000,19 @@ const deployedContracts = {
             },
           ],
           name: "revealHash",
+          outputs: [],
+          stateMutability: "nonpayable",
+          type: "function",
+        },
+        {
+          inputs: [
+            {
+              internalType: "uint256",
+              name: "gameId",
+              type: "uint256",
+            },
+          ],
+          name: "storeCommitBlockHash",
           outputs: [],
           stateMutability: "nonpayable",
           type: "function",
@@ -971,12 +1023,31 @@ const deployedContracts = {
   },
   31337: {
     YourContract: {
-      address: "0x5f76C7A8c261e2236bD226b951E041e23Bc5FF6A",
+      address: "0xDc64a140Aa3E981100a9becA4E685f962f0cF6C9",
       abi: [
         {
           inputs: [],
           stateMutability: "nonpayable",
           type: "constructor",
+        },
+        {
+          anonymous: false,
+          inputs: [
+            {
+              indexed: true,
+              internalType: "uint256",
+              name: "gameId",
+              type: "uint256",
+            },
+            {
+              indexed: false,
+              internalType: "bytes32",
+              name: "blockHash",
+              type: "bytes32",
+            },
+          ],
+          name: "BlockHashStored",
+          type: "event",
         },
         {
           anonymous: false,
@@ -1312,6 +1383,11 @@ const deployedContracts = {
             },
             {
               internalType: "bytes32",
+              name: "commitBlockHash",
+              type: "bytes32",
+            },
+            {
+              internalType: "bytes32",
               name: "revealValue",
               type: "bytes32",
             },
@@ -1328,6 +1404,11 @@ const deployedContracts = {
             {
               internalType: "bool",
               name: "hasRevealed",
+              type: "bool",
+            },
+            {
+              internalType: "bool",
+              name: "hasStoredBlockHash",
               type: "bool",
             },
             {
@@ -1421,6 +1502,11 @@ const deployedContracts = {
             {
               internalType: "bool",
               name: "_hasRevealed",
+              type: "bool",
+            },
+            {
+              internalType: "bool",
+              name: "_hasStoredBlockHash",
               type: "bool",
             },
             {
@@ -1528,6 +1614,11 @@ const deployedContracts = {
             {
               internalType: "bool",
               name: "hasRevealed",
+              type: "bool",
+            },
+            {
+              internalType: "bool",
+              name: "hasStoredBlockHash",
               type: "bool",
             },
             {
@@ -1925,6 +2016,19 @@ const deployedContracts = {
             },
           ],
           name: "revealHash",
+          outputs: [],
+          stateMutability: "nonpayable",
+          type: "function",
+        },
+        {
+          inputs: [
+            {
+              internalType: "uint256",
+              name: "gameId",
+              type: "uint256",
+            },
+          ],
+          name: "storeCommitBlockHash",
           outputs: [],
           stateMutability: "nonpayable",
           type: "function",
