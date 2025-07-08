@@ -768,7 +768,7 @@ const deployedContracts = {
   },
   31337: {
     YourContract: {
-      address: "0x8215aE307AD23f482838B99bFD4869F901720360",
+      address: "0x5f76C7A8c261e2236bD226b951E041e23Bc5FF6A",
       abi: [
         {
           inputs: [],
@@ -788,6 +788,12 @@ const deployedContracts = {
               indexed: false,
               internalType: "uint256",
               name: "startTime",
+              type: "uint256",
+            },
+            {
+              indexed: false,
+              internalType: "uint256",
+              name: "mapSize",
               type: "uint256",
             },
           ],
@@ -1123,6 +1129,11 @@ const deployedContracts = {
             },
             {
               internalType: "uint256",
+              name: "mapSize",
+              type: "uint256",
+            },
+            {
+              internalType: "uint256",
               name: "payoutAmount",
               type: "uint256",
             },
@@ -1145,6 +1156,25 @@ const deployedContracts = {
               internalType: "bool",
               name: "canWithdraw",
               type: "bool",
+            },
+          ],
+          stateMutability: "view",
+          type: "function",
+        },
+        {
+          inputs: [
+            {
+              internalType: "uint256",
+              name: "gameId",
+              type: "uint256",
+            },
+          ],
+          name: "getCommitBlockHash",
+          outputs: [
+            {
+              internalType: "bytes32",
+              name: "",
+              type: "bytes32",
             },
           ],
           stateMutability: "view",
@@ -1190,6 +1220,11 @@ const deployedContracts = {
               name: "_hasRevealed",
               type: "bool",
             },
+            {
+              internalType: "uint256",
+              name: "_mapSize",
+              type: "uint256",
+            },
           ],
           stateMutability: "view",
           type: "function",
@@ -1202,6 +1237,155 @@ const deployedContracts = {
               internalType: "uint256",
               name: "",
               type: "uint256",
+            },
+          ],
+          stateMutability: "view",
+          type: "function",
+        },
+        {
+          inputs: [
+            {
+              internalType: "uint256",
+              name: "gameId",
+              type: "uint256",
+            },
+            {
+              internalType: "address",
+              name: "playerAddress",
+              type: "address",
+            },
+          ],
+          name: "getFullGameState",
+          outputs: [
+            {
+              internalType: "address",
+              name: "gamemaster",
+              type: "address",
+            },
+            {
+              internalType: "address",
+              name: "creator",
+              type: "address",
+            },
+            {
+              internalType: "uint256",
+              name: "stakeAmount",
+              type: "uint256",
+            },
+            {
+              internalType: "bool",
+              name: "open",
+              type: "bool",
+            },
+            {
+              internalType: "uint256",
+              name: "playerCount",
+              type: "uint256",
+            },
+            {
+              internalType: "bool",
+              name: "hasOpened",
+              type: "bool",
+            },
+            {
+              internalType: "bool",
+              name: "hasClosed",
+              type: "bool",
+            },
+            {
+              internalType: "address[]",
+              name: "players",
+              type: "address[]",
+            },
+            {
+              internalType: "bytes32",
+              name: "committedHash",
+              type: "bytes32",
+            },
+            {
+              internalType: "uint256",
+              name: "commitBlockNumber",
+              type: "uint256",
+            },
+            {
+              internalType: "bytes32",
+              name: "revealValue",
+              type: "bytes32",
+            },
+            {
+              internalType: "bytes32",
+              name: "randomHash",
+              type: "bytes32",
+            },
+            {
+              internalType: "bool",
+              name: "hasCommitted",
+              type: "bool",
+            },
+            {
+              internalType: "bool",
+              name: "hasRevealed",
+              type: "bool",
+            },
+            {
+              internalType: "uint256",
+              name: "mapSize",
+              type: "uint256",
+            },
+            {
+              internalType: "address[]",
+              name: "winners",
+              type: "address[]",
+            },
+            {
+              internalType: "uint256",
+              name: "payoutAmount",
+              type: "uint256",
+            },
+            {
+              internalType: "bool",
+              name: "hasPaidOut",
+              type: "bool",
+            },
+            {
+              internalType: "bool",
+              name: "gameAbandoned",
+              type: "bool",
+            },
+            {
+              internalType: "uint256",
+              name: "timeUntilAbandonmentTimeout",
+              type: "uint256",
+            },
+            {
+              internalType: "uint256",
+              name: "startTime",
+              type: "uint256",
+            },
+            {
+              internalType: "bool",
+              name: "canWithdraw",
+              type: "bool",
+            },
+            {
+              internalType: "bool",
+              name: "canWithdrawNow",
+              type: "bool",
+            },
+            {
+              internalType: "uint256",
+              name: "timeUntilWithdrawal",
+              type: "uint256",
+            },
+            {
+              internalType: "bool",
+              name: "playerWithdrawn",
+              type: "bool",
+            },
+            {
+              internalType: "bool",
+              name: "playerJoined",
+              type: "bool",
             },
           ],
           stateMutability: "view",
@@ -1270,6 +1454,25 @@ const deployedContracts = {
               internalType: "bool",
               name: "hasClosed",
               type: "bool",
+            },
+          ],
+          stateMutability: "view",
+          type: "function",
+        },
+        {
+          inputs: [
+            {
+              internalType: "uint256",
+              name: "gameId",
+              type: "uint256",
+            },
+          ],
+          name: "getMapSize",
+          outputs: [
+            {
+              internalType: "uint256",
+              name: "",
+              type: "uint256",
             },
           ],
           stateMutability: "view",

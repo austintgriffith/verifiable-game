@@ -2,16 +2,14 @@
 pragma solidity >=0.8.0 <0.9.0;
 
 /*
-    ___                                 _                 _  _                         _                             ____                     
-  ,"___".   _ ___   _    _    _ ___    FJ_      ____     FJ  L]    _    _    _ ___    FJ_      ____     _ ___       F ___J  _    _    _ ___   
-  FJ---L]  J '__ ",J |  | L  J '__ J  J  _|    F __ J   J |__| L  J |  | L  J '__ J  J  _|    F __ J   J '__ ",    J |___: J |  | L  J '__ J  
- J |   LJ  | |__|-J| |  | |  | |--| | | |-'   | |--| |  |  __  |  | |  | |  | |__| | | |-'   | _____J  | |__|-J    | _____|| |  | |  | |__| | 
- | \___--. F L  `-'F L__J J  F L__J J F |__-. F L__J J  F L__J J  F L__J J  F L  J J F |__-. F L___--. F L  `-'__  F |____JF L__J J  F L  J J 
- J\_____/FJ__L     )-____  LJ  _____/L\_____/J\______/FJ__L  J__LJ\____,__LJ__L  J__L\_____/J\______/FJ__L    J__LJ__F    J\____,__LJ__L  J__L
-  J_____F |__L    J\______/F|_J_____F J_____F J______F |__L  J__| J____,__F|__L  J__|J_____F J______F |__L    |__||__|     J____,__F|__L  J__|
-                   J______F L_J                                                                                                               
-
-CryptoHunter.fun -- a verifiable ethereum game with a gamemaster backend 
+   ____                  _        _   _             _             __             
+  / ___|_ __ _   _ _ __ | |_ ___ | | | |_   _ _ __ | |_ ___ _ __ / _|_   _ _ __  
+ | |   | '__| | | | '_ \| __/ _ \| |_| | | | | '_ \| __/ _ \ '__| |_| | | | '_ \ 
+ | |___| |  | |_| | |_) | || (_) |  _  | |_| | | | | ||  __/ |_ |  _| |_| | | | |
+  \____|_|   \__, | .__/ \__\___/|_| |_|\__,_|_| |_|\__\___|_(_)|_|  \__,_|_| |_|
+             |___/|_|   
+             
+a verifiable ethereum game with a gamemaster backend 
 
 */
 
@@ -36,6 +34,7 @@ contract YourContract {
         bytes32 randomHash;
         bool hasCommitted;
         bool hasRevealed;
+        uint256 mapSize;
         
         // Payout System State Variables
         address[] winners;
@@ -64,7 +63,7 @@ contract YourContract {
     event HashCommitted(uint256 indexed gameId, bytes32 indexed committedHash, uint256 nextBlockNumber);
     event HashRevealed(uint256 indexed gameId, bytes32 indexed reveal, bytes32 indexed randomHash);
     event GameOpened(uint256 indexed gameId);
-    event GameClosed(uint256 indexed gameId, uint256 startTime);
+    event GameClosed(uint256 indexed gameId, uint256 startTime, uint256 mapSize);
     event PlayerJoined(uint256 indexed gameId, address indexed player);
     event PayoutCompleted(uint256 indexed gameId, address[] winners, uint256 amountPerWinner);
     event PlayerWithdrew(uint256 indexed gameId, address indexed player, uint256 amount);
@@ -121,6 +120,7 @@ contract YourContract {
      * After 2.5 minutes and at least one player has joined, anyone can close an abandoned game
      * Can only be called once per game and is irreversible (immutable)
      * Sets the start time for the timeout mechanism
+     * Automatically calculates map size using formula: mapSize = 1 + (number of players * 4)
      */
     function closeGame(uint256 gameId) public {
         require(games[gameId].gamemaster != address(0), "Game does not exist");
@@ -129,18 +129,22 @@ contract YourContract {
         require(games[gameId].open, "Game is already closed");
         
         // Check if caller is authorized to close the game
-        bool isCreator = msg.sender == games[gameId].creator;
-        bool isAbandoned = games[gameId].openTime > 0 && 
-                          block.timestamp >= games[gameId].openTime + CREATOR_TIMEOUT &&
-                          games[gameId].players.length > 0;
+        bool callerIsCreator = msg.sender == games[gameId].creator;
+        bool gameIsAbandoned = games[gameId].openTime > 0 && 
+                              block.timestamp >= games[gameId].openTime + CREATOR_TIMEOUT &&
+                              games[gameId].players.length > 0;
         
-        require(isCreator || isAbandoned, "Not authorized - only creator can close game, or anyone after 2.5 minutes if creator abandoned");
+        require(callerIsCreator || gameIsAbandoned, "Not authorized - only creator can close game, or anyone after 2.5 minutes if creator abandoned");
+        
+        // Calculate map size based on number of players: mapSize = 1 + (number of players * 4)
+        uint256 calculatedMapSize = 1 + (games[gameId].players.length * 4);
         
         games[gameId].open = false;
         games[gameId].hasClosed = true;
         games[gameId].startTime = block.timestamp; // Set start time when game closes
+        games[gameId].mapSize = calculatedMapSize; // Set calculated map size when game closes
         
-        emit GameClosed(gameId, block.timestamp);
+        emit GameClosed(gameId, block.timestamp, calculatedMapSize);
     }
 
     /**
@@ -177,6 +181,22 @@ contract YourContract {
     }
 
     /**
+     * Function to get the blockhash from the commit block for a given game
+     * This allows the server to generate the map using the same randomness that will be used during reveal
+     * Can only be called after the game has been closed (so the commit block is in the past)
+     */
+    function getCommitBlockHash(uint256 gameId) public view returns (bytes32) {
+        require(games[gameId].gamemaster != address(0), "Game does not exist");
+        require(games[gameId].hasCommitted, "No hash has been committed for this game");
+        require(games[gameId].hasClosed, "Game must be closed before accessing commit block hash");
+        
+        bytes32 blockHash = blockhash(games[gameId].commitBlockNumber);
+        require(blockHash != bytes32(0), "Commit block hash not available (too old)");
+        
+        return blockHash;
+    }
+
+    /**
      * Function that allows the gamemaster to commit a hash
      * Records the hash and the next block number for later reveal
      * Can only be called once per game (immutable)
@@ -204,7 +224,8 @@ contract YourContract {
 
     /**
      * Function that allows the gamemaster to reveal the committed value
-     * Verifies the reveal against the commit and generates randomness using blockhash
+     * Verifies the reveal against the commit and generates randomHash using blockhash + reveal
+     * The randomHash is used for map generation and must match what the server calculated
      *
      * @param gameId The ID of the game
      * @param _reveal (bytes32) - the original value that was hashed for the commit
@@ -218,19 +239,16 @@ contract YourContract {
         bytes32 hashedReveal = keccak256(abi.encodePacked(_reveal));
         require(hashedReveal == games[gameId].committedHash, "Reveal does not match the committed hash");
         
-        // Get the blockhash from the commit block number for randomness
-        bytes32 blockHash = blockhash(games[gameId].commitBlockNumber);
-        require(blockHash != bytes32(0), "Blockhash not available (too old)");
-        
-        // Create random hash by combining reveal with blockhash
-        bytes32 newRandomHash = keccak256(abi.encodePacked(_reveal, blockHash));
-        
-        // Save the values
+        // Save the reveal value
         games[gameId].revealValue = _reveal;
-        games[gameId].randomHash = newRandomHash;
         games[gameId].hasRevealed = true;
 
-        emit HashRevealed(gameId, _reveal, newRandomHash);
+        // Calculate randomHash using blockhash and reveal value
+        bytes32 blockHash = blockhash(games[gameId].commitBlockNumber);
+        require(blockHash != bytes32(0), "Block hash not available for randomHash calculation");
+        games[gameId].randomHash = keccak256(abi.encodePacked(blockHash, _reveal));
+
+        emit HashRevealed(gameId, _reveal, games[gameId].randomHash);
     }
 
     /**
@@ -242,7 +260,8 @@ contract YourContract {
         bytes32 _revealValue,
         bytes32 _randomHash,
         bool _hasCommitted,
-        bool _hasRevealed
+        bool _hasRevealed,
+        uint256 _mapSize
     ) {
         require(games[gameId].gamemaster != address(0), "Game does not exist");
         return (
@@ -251,7 +270,8 @@ contract YourContract {
             games[gameId].revealValue,
             games[gameId].randomHash,
             games[gameId].hasCommitted,
-            games[gameId].hasRevealed
+            games[gameId].hasRevealed,
+            games[gameId].mapSize
         );
     }
 
@@ -288,9 +308,11 @@ contract YourContract {
         games[gameId].payoutAmount = amountPerWinner;
         games[gameId].hasPaidOut = true;
         
-        // Send gamemaster their 1% cut first
-        (bool gmSuccess, ) = payable(games[gameId].gamemaster).call{value: gamemasterCut}("");
-        require(gmSuccess, "Failed to send payout to gamemaster");
+        // Send gamemaster their 1% cut first (skip if cut is 0)
+        if (gamemasterCut > 0) {
+            (bool gmSuccess, ) = payable(games[gameId].gamemaster).call{value: gamemasterCut}("");
+            require(gmSuccess, "Failed to send payout to gamemaster");
+        }
         
         // Send payout to each winner
         for (uint256 i = 0; i < _winners.length; i++) {
@@ -371,6 +393,14 @@ contract YourContract {
     }
 
     /**
+     * Function to get the map size for a specific game
+     */
+    function getMapSize(uint256 gameId) public view returns (uint256) {
+        require(games[gameId].gamemaster != address(0), "Game does not exist");
+        return games[gameId].mapSize;
+    }
+
+    /**
      * Function to get the payout information for a game
      */
     function getPayoutInfo(uint256 gameId) public view returns (
@@ -408,11 +438,11 @@ contract YourContract {
         require(games[gameId].gamemaster != address(0), "Game does not exist");
         
         uint256 withdrawalTime = games[gameId].startTime + PAYOUT_TIMEOUT;
-        bool canWithdrawNow = games[gameId].canWithdraw || 
-                             (games[gameId].hasClosed && 
-                              games[gameId].startTime > 0 && 
-                              block.timestamp >= withdrawalTime && 
-                              !games[gameId].hasPaidOut);
+        bool withdrawAvailableNow = games[gameId].canWithdraw || 
+                                   (games[gameId].hasClosed && 
+                                    games[gameId].startTime > 0 && 
+                                    block.timestamp >= withdrawalTime && 
+                                    !games[gameId].hasPaidOut);
         
         uint256 timeUntil = 0;
         if (games[gameId].startTime > 0 && block.timestamp < withdrawalTime) {
@@ -422,7 +452,7 @@ contract YourContract {
         return (
             games[gameId].startTime,
             games[gameId].canWithdraw,
-            canWithdrawNow,
+            withdrawAvailableNow,
             timeUntil
         );
     }
@@ -466,5 +496,130 @@ contract YourContract {
         require(success, "Failed to send withdrawal to player");
 
         emit PlayerWithdrew(gameId, msg.sender, withdrawalAmount);
+    }
+
+    /**
+     * COMPREHENSIVE VIEW FUNCTION - Returns all game data in a single call
+     * This replaces the need for multiple separate contract calls from the frontend
+     * 
+     * @param gameId The ID of the game
+     * @param playerAddress Optional address to check player-specific data (use zero address if not needed)
+     */
+    function getFullGameState(uint256 gameId, address playerAddress) public view returns (
+        // Basic game info (from getGameInfo)
+        address gamemaster,
+        address creator,
+        uint256 stakeAmount,
+        bool open,
+        uint256 playerCount,
+        bool hasOpened,
+        bool hasClosed,
+        
+        // Players array (from getPlayers)
+        address[] memory players,
+        
+        // Commit-reveal state (from getCommitRevealState)
+        bytes32 committedHash,
+        uint256 commitBlockNumber,
+        bytes32 revealValue,
+        bytes32 randomHash,
+        bool hasCommitted,
+        bool hasRevealed,
+        uint256 mapSize,
+        
+        // Payout info (from getPayoutInfo)
+        address[] memory winners,
+        uint256 payoutAmount,
+        bool hasPaidOut,
+        
+        // Abandonment info (from isGameAbandoned)
+        bool gameAbandoned,
+        uint256 timeUntilAbandonmentTimeout,
+        
+        // Withdrawal info (from getWithdrawalInfo)
+        uint256 startTime,
+        bool canWithdraw,
+        bool canWithdrawNow,
+        uint256 timeUntilWithdrawal,
+        
+        // Player-specific info (from hasPlayerWithdrawn and hasPlayerJoined)
+        bool playerWithdrawn,
+        bool playerJoined
+    ) {
+        require(games[gameId].gamemaster != address(0), "Game does not exist");
+        
+        // Calculate abandonment status
+        bool abandoned = games[gameId].openTime > 0 && 
+                        block.timestamp >= games[gameId].openTime + CREATOR_TIMEOUT &&
+                        games[gameId].players.length > 0 &&
+                        games[gameId].open;
+        
+        uint256 abandonmentTimeUntil = 0;
+        if (games[gameId].openTime > 0 && block.timestamp < games[gameId].openTime + CREATOR_TIMEOUT) {
+            abandonmentTimeUntil = games[gameId].openTime + CREATOR_TIMEOUT - block.timestamp;
+        }
+        
+        // Calculate withdrawal status
+        uint256 withdrawalTime = games[gameId].startTime + PAYOUT_TIMEOUT;
+        bool withdrawNow = games[gameId].canWithdraw || 
+                          (games[gameId].hasClosed && 
+                           games[gameId].startTime > 0 && 
+                           block.timestamp >= withdrawalTime && 
+                           !games[gameId].hasPaidOut);
+        
+        uint256 withdrawalTimeUntil = 0;
+        if (games[gameId].startTime > 0 && block.timestamp < withdrawalTime) {
+            withdrawalTimeUntil = withdrawalTime - block.timestamp;
+        }
+        
+        // Player-specific data (only if playerAddress is provided)
+        bool hasPlayerWithdrawnLocal = false;
+        bool hasPlayerJoinedLocal = false;
+        if (playerAddress != address(0)) {
+            hasPlayerWithdrawnLocal = games[gameId].hasWithdrawn[playerAddress];
+            hasPlayerJoinedLocal = games[gameId].hasJoined[playerAddress];
+        }
+        
+        return (
+            // Basic game info
+            games[gameId].gamemaster,
+            games[gameId].creator,
+            games[gameId].stakeAmount,
+            games[gameId].open,
+            games[gameId].players.length,
+            games[gameId].hasOpened,
+            games[gameId].hasClosed,
+            
+            // Players array
+            games[gameId].players,
+            
+            // Commit-reveal state
+            games[gameId].committedHash,
+            games[gameId].commitBlockNumber,
+            games[gameId].revealValue,
+            games[gameId].randomHash,
+            games[gameId].hasCommitted,
+            games[gameId].hasRevealed,
+            games[gameId].mapSize,
+            
+            // Payout info
+            games[gameId].winners,
+            games[gameId].payoutAmount,
+            games[gameId].hasPaidOut,
+            
+            // Abandonment info
+            abandoned,
+            abandonmentTimeUntil,
+            
+            // Withdrawal info
+            games[gameId].startTime,
+            games[gameId].canWithdraw,
+            withdrawNow,
+            withdrawalTimeUntil,
+            
+            // Player-specific info
+            hasPlayerWithdrawnLocal,
+            hasPlayerJoinedLocal
+        );
     }
 }

@@ -237,6 +237,9 @@ describe("YourContract", function () {
     });
 
     it("Should payout to winners", async function () {
+      // Close the game first (this is required for proper game flow)
+      await yourContract.connect(creator).closeGame(1);
+
       const initialBalance1 = await ethers.provider.getBalance(player1.address);
       const initialBalance2 = await ethers.provider.getBalance(player2.address);
 
@@ -261,12 +264,18 @@ describe("YourContract", function () {
     });
 
     it("Should reject payout with empty winners array", async function () {
+      // Close the game first (this is required for proper game flow)
+      await yourContract.connect(creator).closeGame(1);
+
       await expect(yourContract.connect(gamemaster).payout(1, [])).to.be.revertedWith(
         "Must provide at least one winner address",
       );
     });
 
     it("Should reject payout from non-gamemaster", async function () {
+      // Close the game first (this is required for proper game flow)
+      await yourContract.connect(creator).closeGame(1);
+
       await expect(yourContract.connect(player1).payout(1, [player1.address])).to.be.revertedWith(
         "Not authorized - only gamemaster can call this function",
       );
