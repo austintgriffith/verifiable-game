@@ -408,7 +408,7 @@ const GamePageContent = () => {
   const hasClosed = gameState?.[6] as boolean | undefined;
 
   // Players array from comprehensive contract data
-  const contractPlayers = (gameState?.[7] as string[] | undefined) || [];
+  const contractPlayers = useMemo(() => (gameState?.[7] as string[] | undefined) || [], [gameState]);
 
   // Commit-reveal state from comprehensive contract data
   const committedHash = gameState?.[8] as string | undefined;
@@ -1296,7 +1296,7 @@ const GamePageContent = () => {
         console.log("🔥 [HEAVY DEBUG] fetchPlayerMap error:", err);
       }
     }
-  }, [canPlay, jwtToken, gameId]); // Removed recentMoveTimestamp to prevent constant recreation
+  }, [canPlay, jwtToken, gameId]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Helper functions
   const getTileColor = (tileType: number | string) => {
@@ -1492,7 +1492,7 @@ const GamePageContent = () => {
       console.log("🛑 Clearing polling interval:", interval);
       clearInterval(interval);
     };
-  }, [canPlay, hasPaidOut]); // Changed dependency from hasClosed to canPlay
+  }, [canPlay, hasPaidOut]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Lightweight timer update - only fetch timer data more frequently
   useEffect(() => {
@@ -1544,7 +1544,7 @@ const GamePageContent = () => {
       console.log("🛑 Clearing timer interval:", timerInterval);
       clearInterval(timerInterval);
     };
-  }, [canPlay, hasPaidOut, gameId]); // Changed dependency from hasClosed to canPlay
+  }, [canPlay, hasPaidOut, gameId]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Fetch player map when authentication and player status change
   useEffect(() => {
@@ -1553,7 +1553,7 @@ const GamePageContent = () => {
       console.log("🔄 Triggering initial map fetch...");
       fetchPlayerMap();
     }
-  }, [canPlay, jwtToken]); // Removed fetchPlayerMap to prevent constant recreation
+  }, [canPlay, jwtToken]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Memoize radar calculations to prevent re-renders
   const radarConfig = useMemo(() => {
