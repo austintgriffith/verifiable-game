@@ -1,80 +1,251 @@
-# 🏗 Scaffold-ETH 2
+# 🎮 GMAE - Game Master Automated Ethereum
 
 <h4 align="center">
-  <a href="https://docs.scaffoldeth.io">Documentation</a> |
-  <a href="https://scaffoldeth.io">Website</a>
+  A Smart Contract game with a Verifiable Backend
 </h4>
 
-🧪 An open-source, up-to-date toolkit for building decentralized applications (dapps) on the Ethereum blockchain. It's designed to make it easier for developers to create and deploy smart contracts and build user interfaces that interact with those contracts.
+A Smart Contract game with a Verifiable Backend where players compete in procedurally generated worlds, mine resources, and compete for ETH prizes. Built on Ethereum with provably fair randomness and cryptographic verification of all game actions.
 
-⚙️ Built using NextJS, RainbowKit, Hardhat, Wagmi, Viem, and Typescript.
+⚙️ Built using **Scaffold-ETH 2**: NextJS, RainbowKit, Hardhat, Wagmi, Viem, and TypeScript.
 
-- ✅ **Contract Hot Reload**: Your frontend auto-adapts to your smart contract as you edit it.
-- 🪝 **[Custom hooks](https://docs.scaffoldeth.io/hooks/)**: Collection of React hooks wrapper around [wagmi](https://wagmi.sh/) to simplify interactions with smart contracts with typescript autocompletion.
-- 🧱 [**Components**](https://docs.scaffoldeth.io/components/): Collection of common web3 components to quickly build your frontend.
-- 🔥 **Burner Wallet & Local Faucet**: Quickly test your application with a burner wallet and local faucet.
-- 🔐 **Integration with Wallet Providers**: Connect to different wallet providers and interact with the Ethereum network.
+## 🌟 Features
 
-![Debug Contracts tab](https://github.com/scaffold-eth/scaffold-eth-2/assets/55535804/b237af0c-5027-4849-a5c1-2e31495cccb1)
+- 🗺️ **Verifiable Map Generation**: Complete map revealed at game end, deterministically generated from the on-chain random hash - players can verify the entire world was fair
+- 🏆 **Stake-based Competition**: Players stake ETH to join games and compete for the prize pool
+- 🎮 **Real-time Gameplay**: Move, mine, and compete in a responsive 3x3 grid interface
+- 🔐 **Cryptographic Authentication**: Secure player authentication via wallet signatures
+- 📱 **Mobile-friendly UI**: Responsive design with QR code sharing for easy access
+- 🎊 **Automated Payouts**: Smart contract handles prize distribution with 1% gamemaster fee
+- ⏰ **Timeout Protection**: Players can withdraw stakes if gamemaster abandons the game
+- 🗺️ **Radar System**: Real-time minimap showing explored territories
+- ✅ **Full Transparency**: After each round, the complete map is displayed with verification that all tiles match the deterministic generation
 
-## Requirements
+## 🎮 How to Play
 
-Before you begin, you need to install the following tools:
+### For Players
 
-- [Node (>= v20.18.3)](https://nodejs.org/en/download/)
-- Yarn ([v1](https://classic.yarnpkg.com/en/docs/install/) or [v2+](https://yarnpkg.com/getting-started/install))
+1. **Join a Game**: Connect your wallet and stake the required ETH to join an open game
+2. **Wait for Start**: Games begin when the creator closes them (or after 2.5min timeout)
+3. **Sign In**: Authenticate with your wallet to access the game interface
+4. **Explore & Mine**:
+   - Move around the 3x3 grid by clicking adjacent tiles
+   - Mine resources at your current position (limited mines per player)
+   - Collect points: Common (1pt), Uncommon (5pts), Rare (10pts), Treasure (special)
+5. **Compete**: Race against other players within the time limit to maximize your score
+6. **Win Prizes**: Top scorers share 99% of the prize pool equally
+
+### For Game Creators
+
+1. **Create Game**: Set gamemaster address and stake amount
+2. **Commit Randomness**: Gamemaster commits a hash for provable fairness
+3. **Open Game**: Players can join after hash commitment
+4. **Start Game**: Close the game to begin the competition
+5. **Payout Winners**: Gamemaster distributes prizes to top scorers
+
+## 🚀 Quick Start
+
+### Prerequisites
+
+- [Node.js](https://nodejs.org/en/download/) (>= v20.18.3)
+- [Yarn](https://classic.yarnpkg.com/en/docs/install/) (v1 or v2+)
 - [Git](https://git-scm.com/downloads)
 
-## Quickstart
+### Installation
 
-To get started with Scaffold-ETH 2, follow the steps below:
+1. **Clone the repository**:
 
-1. Install dependencies if it was skipped in CLI:
-
+```bash
+git clone <your-repo-url>
+cd gmae-dapp
 ```
-cd my-dapp-example
+
+2. **Install dependencies**:
+
+```bash
 yarn install
 ```
 
-2. Run a local network in the first terminal:
+3. **Start local blockchain**:
 
-```
+```bash
 yarn chain
 ```
 
-This command starts a local Ethereum network using Hardhat. The network runs on your local machine and can be used for testing and development. You can customize the network configuration in `packages/hardhat/hardhat.config.ts`.
+4. **Deploy contracts**:
 
-3. On a second terminal, deploy the test contract:
-
-```
+```bash
 yarn deploy
 ```
 
-This command deploys a test smart contract to the local network. The contract is located in `packages/hardhat/contracts` and can be modified to suit your needs. The `yarn deploy` command uses the deploy script located in `packages/hardhat/deploy` to deploy the contract to the network. You can also customize the deploy script.
+5. **Start frontend**:
 
-4. On a third terminal, start your NextJS app:
-
-```
+```bash
 yarn start
 ```
 
-Visit your app on: `http://localhost:3000`. You can interact with your smart contract using the `Debug Contracts` page. You can tweak the app config in `packages/nextjs/scaffold.config.ts`.
+6. **Visit the app**: `http://localhost:3000`
 
-Run smart contract test with `yarn hardhat:test`
+### Testing
 
-- Edit your smart contracts in `packages/hardhat/contracts`
-- Edit your frontend homepage at `packages/nextjs/app/page.tsx`. For guidance on [routing](https://nextjs.org/docs/app/building-your-application/routing/defining-routes) and configuring [pages/layouts](https://nextjs.org/docs/app/building-your-application/routing/pages-and-layouts) checkout the Next.js documentation.
-- Edit your deployment scripts in `packages/hardhat/deploy`
+Run the smart contract tests:
 
+```bash
+yarn hardhat:test
+```
 
-## Documentation
+## 🏗️ Architecture
 
-Visit our [docs](https://docs.scaffoldeth.io) to learn how to start building with Scaffold-ETH 2.
+### Smart Contract (`YourContract.sol`)
 
-To know more about its features, check out our [website](https://scaffoldeth.io).
+The core game logic is handled by a Solidity contract that manages:
 
-## Contributing to Scaffold-ETH 2
+- **Game Creation**: Anyone can create games with custom stake amounts
+- **Player Management**: Join games by staking ETH, track player states
+- **Commit-Reveal Randomness**: Provably fair map generation using blockhash + reveal
+- **Payout System**: Automated prize distribution to winners
+- **Timeout Protection**: Players can withdraw if gamemaster abandons
 
-We welcome contributions to Scaffold-ETH 2!
+Key functions:
 
-Please see [CONTRIBUTING.MD](https://github.com/scaffold-eth/scaffold-eth-2/blob/main/CONTRIBUTING.md) for more information and guidelines for contributing to Scaffold-ETH 2.
+- `createGame(gamemaster, stakeAmount)` - Create new game
+- `joinGame(gameId)` - Join game with ETH stake
+- `commitHash(gameId, hash)` - Gamemaster commits random hash
+- `revealHash(gameId, reveal)` - Reveal for map generation
+- `closeGame(gameId)` - Start the game
+- `payout(gameId, winners)` - Distribute prizes
+
+### Frontend (`packages/nextjs/`)
+
+React-based game interface featuring:
+
+- **Game Discovery**: Browse and join available games
+- **Real-time Interface**: WebSocket-like polling for game state
+- **Interactive Map**: 3x3 grid with movement and mining
+- **Radar System**: Minimap showing explored areas
+- **Wallet Integration**: RainbowKit for wallet connections
+- **QR Code Sharing**: Easy game sharing via QR codes
+- **Map Verification Display**: Post-game complete map visualization with tile-by-tile verification against explored areas
+
+Key pages:
+
+- `/` - Game browser and creation
+- `/game/[gameId]` - Individual game interface
+- `/debug` - Contract interaction tools
+
+### Backend API
+
+External gamemaster server (not included in this repo) handles:
+
+- **Game State Management**: Track player positions, scores, moves
+- **Real-time Updates**: Game timer, player actions, map state
+- **Authentication**: JWT tokens from wallet signatures
+- **Map Logic**: Procedural generation using contract randomness
+
+API endpoints:
+
+- `GET /status?gameId=X` - Game status and timer
+- `GET /players?gameId=X` - Player leaderboard
+- `GET /map?gameId=X` - Player's map view
+- `POST /move` - Player movement
+- `POST /mine` - Resource mining
+- `POST /register` - Player authentication
+
+## 🎯 Game Mechanics
+
+### Map Generation & Verification
+
+1. **Commit Phase**: Gamemaster commits `keccak256(secret)` to contract
+2. **Reveal Phase**: After game closes, gamemaster reveals `secret`
+3. **Randomness**: `randomHash = keccak256(blockhash + secret)` ensures fairness
+4. **Map Size**: `mapSize = 1 + (4 × playerCount)` for scalable difficulty
+5. **Procedural Generation**: Deterministic map creation using `randomHash`
+6. **Post-Game Verification**: Complete map displayed to all players with tile-by-tile verification
+7. **Transparency**: Players can verify their explored tiles match the deterministically generated map, proving no cheating occurred
+
+### Resource Types
+
+- **Common (1)**: 1 point, blue tiles
+- **Uncommon (2)**: 5 points, green tiles
+- **Rare (3)**: 10 points, orange tiles
+- **Treasure (X)**: Special scoring, gold tiles
+- **Depleted (0)**: No points, gray tiles
+
+### Player Limits
+
+- **Moves**: Start with limited movement actions
+- **Mines**: Limited mining actions per player
+- **Time**: Games have countdown timers for urgency
+
+### Prize Distribution
+
+- **Prize Pool**: Sum of all player stakes
+- **Gamemaster Fee**: 1% to gamemaster for running the game
+- **Winner Split**: 99% split equally among top scorers
+- **Timeout Protection**: Players can withdraw stakes if no payout
+
+## 🔧 Development
+
+### Contract Development
+
+Edit smart contracts in `packages/hardhat/contracts/`:
+
+- `YourContract.sol` - Main game contract
+- Deploy scripts in `packages/hardhat/deploy/`
+
+### Frontend Development
+
+Key files in `packages/nextjs/`:
+
+- `app/page.tsx` - Game browser homepage
+- `app/game/[gameId]/page.tsx` - Main game interface
+- `components/scaffold-eth/` - Reusable Web3 components
+- `hooks/scaffold-eth/` - Contract interaction hooks
+
+### Configuration
+
+- `packages/nextjs/scaffold.config.ts` - App configuration
+- `packages/hardhat/hardhat.config.ts` - Blockchain configuration
+
+## 🌐 Deployment
+
+### Smart Contract
+
+Deploy to live networks:
+
+```bash
+yarn deploy --network sepolia
+```
+
+### Frontend
+
+Deploy to Vercel:
+
+```bash
+yarn vercel
+```
+
+Or IPFS:
+
+```bash
+yarn ipfs
+```
+
+## 🤝 Contributing
+
+We welcome contributions! Please see [CONTRIBUTING.md](CONTRIBUTING.md) for guidelines.
+
+## 📜 License
+
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+
+## 🙏 Acknowledgments
+
+- Built with [Scaffold-ETH 2](https://scaffoldeth.io)
+- Uses [deterministic-map](https://www.npmjs.com/package/deterministic-map) for procedural generation
+- Powered by Ethereum and Web3 technologies
+
+---
+
+<p align="center">
+  <i>⚡ Powered by Ethereum • Built with Scaffold-ETH 2 • Made with ❤️</i>
+</p>
