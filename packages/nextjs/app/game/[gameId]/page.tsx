@@ -1956,15 +1956,28 @@ const GamePageContent = () => {
                 {/* Action buttons */}
                 {hasOpened && !hasClosed && (
                   <button
-                    className={`btn btn-lg text-white transition-all duration-300 hover:scale-105 ${startGameLoading ? "loading" : ""}`}
+                    className={`btn btn-lg text-white transition-all duration-300 ${
+                      startGameLoading || !playerCount || playerCount === 0n
+                        ? "opacity-50 cursor-not-allowed"
+                        : "hover:scale-105"
+                    } ${startGameLoading ? "loading" : ""}`}
                     style={{
-                      backgroundColor: "#ff6b35",
-                      borderColor: "#ff6b35",
+                      backgroundColor: startGameLoading || !playerCount || playerCount === 0n ? "#9ca3af" : "#ff6b35",
+                      borderColor: startGameLoading || !playerCount || playerCount === 0n ? "#9ca3af" : "#ff6b35",
                       boxShadow:
-                        "0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05), 0 0 15px rgba(255, 107, 53, 0.3)",
+                        startGameLoading || !playerCount || playerCount === 0n
+                          ? "none"
+                          : "0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05), 0 0 15px rgba(255, 107, 53, 0.3)",
                     }}
                     onClick={closeGame}
                     disabled={startGameLoading || !playerCount || playerCount === 0n}
+                    title={
+                      startGameLoading
+                        ? "Starting game..."
+                        : !playerCount || playerCount === 0n
+                          ? "At least one player must join before starting the game"
+                          : "Start the game for all players"
+                    }
                   >
                     {startGameLoading ? "Starting..." : "🚀 Start Game"}
                   </button>
