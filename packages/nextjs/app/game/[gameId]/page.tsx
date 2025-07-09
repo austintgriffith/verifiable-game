@@ -17,7 +17,7 @@ const API_BASE = "https://slop.computer:8000";
 //const API_BASE = "http://localhost:8000";
 
 // Heavy debug flag - set to true to log all server communications
-const heavyDebug = true;
+const heavyDebug = false;
 
 // Map data persistence - 10 minutes
 const MAP_DATA_EXPIRY_MS = 10 * 60 * 1000; // 10 minutes
