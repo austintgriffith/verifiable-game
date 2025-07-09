@@ -1,4 +1,4 @@
-# 🎮 GMAE - Game Master Automated Ethereum
+# Verifiable Semi-Onchain Game
 
 <h4 align="center">
   A Smart Contract game with a Verifiable Backend
