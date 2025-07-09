@@ -50,8 +50,35 @@ export const Footer = () => {
           <div className="flex flex-col justify-center items-center gap-2 text-sm w-full">
             <div className="flex justify-center items-center gap-2">
               <div className="text-center">
-                <a href="https://github.com/scaffold-eth/se-2" target="_blank" rel="noreferrer" className="link">
-                  Fork me
+                <a
+                  href="https://github.com/austintgriffith/verifiable-game"
+                  target="_blank"
+                  rel="noreferrer"
+                  className="link"
+                >
+                  smart contracts & frontend
+                </a>
+              </div>
+              <span>·</span>
+              <div className="text-center">
+                <a
+                  href="https://github.com/austintgriffith/verifiable-game-backend"
+                  target="_blank"
+                  rel="noreferrer"
+                  className="link"
+                >
+                  backend
+                </a>
+              </div>
+              <span>·</span>
+              <div className="text-center">
+                <a
+                  href="https://github.com/austintgriffith/deterministic-map"
+                  target="_blank"
+                  rel="noreferrer"
+                  className="link"
+                >
+                  dice & map
                 </a>
               </div>
               <span>·</span>
