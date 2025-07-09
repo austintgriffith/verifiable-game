@@ -303,6 +303,9 @@ const GamePageContent = () => {
   // Track recent moves to prevent polling conflicts
   const [recentMoveTimestamp, setRecentMoveTimestamp] = useState<number | null>(null);
 
+  // Inventory state - track up to 3 mined items
+  const [inventory, setInventory] = useState<(number | string)[]>([]);
+
   // Use ref to access current recentMoveTimestamp without causing useCallback recreation
   const recentMoveTimestampRef = useRef<number | null>(null);
   const timeRemainingRef = useRef<number | null>(null);
@@ -621,6 +624,7 @@ const GamePageContent = () => {
     console.log("🚪 Signing out...");
     setJwtToken(null);
     setIsAuthenticated(false);
+    setInventory([]); // Clear inventory when signing out
     if (contractAddress !== "unknown") {
       removeTokenFromStorage(contractAddress, gameId);
     }
@@ -1063,6 +1067,10 @@ const GamePageContent = () => {
       return;
     }
 
+    // Capture what we're mining before the action
+    const currentTile = playerMap?.localView?.[1]?.[1]?.tile; // Center tile (player position)
+    console.log("⛏️ Mining tile:", currentTile);
+
     setLoading(true);
     setError(null);
 
@@ -1103,6 +1111,13 @@ const GamePageContent = () => {
 
       if (data.success) {
         console.log("✅ Mine successful, updating player map");
+
+        // Add mined item to inventory if it's not depleted (0 or "0") and inventory isn't full
+        if (currentTile !== undefined && currentTile !== 0 && currentTile !== "0" && inventory.length < 3) {
+          console.log("📦 Adding mined item to inventory:", currentTile);
+          const minedItem = currentTile; // TypeScript now knows this is not undefined
+          setInventory(prev => [...prev, minedItem]);
+        }
 
         // Mark this as a recent move to prevent polling conflicts
         const moveTime = Date.now();
@@ -1451,6 +1466,29 @@ const GamePageContent = () => {
     }
   };
 
+  // Get point value for tile type
+  const getTilePointValue = (tileType: number | string) => {
+    if (tileType === "X") {
+      return "25"; // Starting position (ultra rare)
+    }
+    switch (tileType) {
+      case 0:
+      case "0":
+        return "0"; // Depleted
+      case 1:
+      case "1":
+        return "1"; // Common
+      case 2:
+      case "2":
+        return "5"; // Uncommon
+      case 3:
+      case "3":
+        return "10"; // Rare
+      default:
+        return "0";
+    }
+  };
+
   // Poll for updates - start when player can play
   useEffect(() => {
     console.log("⏰ Setting up polling interval...");
@@ -1665,6 +1703,7 @@ const GamePageContent = () => {
     setRecentMoveTimestamp(null);
     setDiscoveredTiles(new Map());
     setOriginalDiscoveredTiles(new Map());
+    setInventory([]);
 
     if (heavyDebug) {
       console.log("🔥 [HEAVY DEBUG] ✅ STATE RESET COMPLETE");
@@ -2248,6 +2287,39 @@ const GamePageContent = () => {
                         </div>
                       );
                     }
+                  })}
+                </div>
+              </div>
+
+              {/* Inventory Display */}
+              <div className="mt-4">
+                <div className="flex justify-center space-x-2">
+                  {Array.from({ length: 3 }, (_, index) => {
+                    const item = inventory[index];
+                    return (
+                      <div
+                        key={index}
+                        className={`
+                          w-16 h-16 flex items-center justify-center text-sm font-semibold
+                          border-2 border-gray-400 transition-all duration-200
+                          ${item !== undefined ? getTileColor(item) : "bg-gray-100"}
+                        `}
+                        title={
+                          item !== undefined
+                            ? `Inventory slot ${index + 1}: ${item === "X" ? "Treasure" : `Type ${item}`}`
+                            : `Empty inventory slot ${index + 1}`
+                        }
+                      >
+                        {item !== undefined ? (
+                          <div className="text-center">
+                            <div>{item}</div>
+                            <div className="text-xs text-gray-600 mt-1">{getTilePointValue(item)}pt</div>
+                          </div>
+                        ) : (
+                          <div className="text-gray-400">?</div>
+                        )}
+                      </div>
+                    );
                   })}
                 </div>
               </div>
