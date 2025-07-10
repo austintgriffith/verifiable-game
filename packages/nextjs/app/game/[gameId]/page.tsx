@@ -427,12 +427,12 @@ const GamePageContent = () => {
   const gameUrl = gameState?.[16] as string | undefined;
 
   // Get API base URL - use contract URL if available, fallback to default
-  const getApiBaseUrl = () => {
+  const getApiBaseUrl = useCallback(() => {
     if (gameUrl && gameUrl.trim() !== "") {
       return gameUrl;
     }
     return DEFAULT_API_BASE;
-  };
+  }, [gameUrl]);
 
   // Payout state from comprehensive contract data
   const winners = useMemo(() => (gameState?.[17] as string[] | undefined) || [], [gameState]);
@@ -819,7 +819,7 @@ const GamePageContent = () => {
       }
       // Silently retry - don't show error to user when server is temporarily down
     }
-  }, [gameId]);
+  }, [gameId, getApiBaseUrl]);
 
   // Fetch all players
   const fetchAllPlayers = useCallback(async () => {
@@ -1326,7 +1326,7 @@ const GamePageContent = () => {
         console.log("🔥 [HEAVY DEBUG] fetchPlayerMap error:", err);
       }
     }
-  }, [canPlay, jwtToken, gameId, getApiBaseUrl]);
+  }, [canPlay, jwtToken, gameId, getApiBaseUrl, contractAddress]);
 
   // Helper functions
   const getTileColor = (tileType: number | string) => {
@@ -1545,7 +1545,7 @@ const GamePageContent = () => {
       console.log("🛑 Clearing polling interval:", interval);
       clearInterval(interval);
     };
-  }, [canPlay, hasPaidOut]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [canPlay, hasPaidOut, fetchGameStatus, fetchAllPlayers]);
 
   // Lightweight timer update - only fetch timer data more frequently
   useEffect(() => {
@@ -1597,7 +1597,7 @@ const GamePageContent = () => {
       console.log("🛑 Clearing timer interval:", timerInterval);
       clearInterval(timerInterval);
     };
-  }, [canPlay, hasPaidOut, gameId]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [canPlay, hasPaidOut, gameId, getApiBaseUrl, hasClosed, isAuthenticated]);
 
   // Fetch player map when authentication and player status change
   useEffect(() => {
@@ -1606,7 +1606,7 @@ const GamePageContent = () => {
       console.log("🔄 Triggering initial map fetch...");
       fetchPlayerMap();
     }
-  }, [canPlay, jwtToken]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [canPlay, jwtToken, fetchPlayerMap]);
 
   // Memoize radar calculations to prevent re-renders
   const radarConfig = useMemo(() => {
