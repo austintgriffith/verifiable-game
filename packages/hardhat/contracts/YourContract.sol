@@ -38,6 +38,9 @@ contract YourContract {
         bool hasStoredBlockHash; // Track if block hash has been stored
         uint256 mapSize;
         
+        // Game URL - set by gamemaster when storing block hash
+        string url;
+        
         // Payout System State Variables
         address[] winners;
         uint256 payoutAmount;
@@ -64,7 +67,7 @@ contract YourContract {
     event GameCreated(uint256 indexed gameId, address indexed gamemaster, address indexed creator, uint256 stakeAmount);
     event HashCommitted(uint256 indexed gameId, bytes32 indexed committedHash, uint256 nextBlockNumber);
     event HashRevealed(uint256 indexed gameId, bytes32 indexed reveal, bytes32 indexed randomHash);
-    event BlockHashStored(uint256 indexed gameId, bytes32 blockHash);
+    event BlockHashStored(uint256 indexed gameId, bytes32 blockHash, string url);
     event GameOpened(uint256 indexed gameId);
     event GameClosed(uint256 indexed gameId, uint256 startTime, uint256 mapSize);
     event PlayerJoined(uint256 indexed gameId, address indexed player);
@@ -226,27 +229,30 @@ contract YourContract {
     }
 
     /**
-     * Function that allows the gamemaster to store the commit block hash
+     * Function that allows the gamemaster to store the commit block hash and set the game URL
      * This should be called immediately after commitHash to ensure the block hash is captured
      * before the 256-block limitation makes it unavailable
      * Can only be called once per game and only after a hash has been committed
      *
      * @param gameId The ID of the game
+     * @param _url The URL for the game's backend server
      */
-    function storeCommitBlockHash(uint256 gameId) public isGamemaster(gameId) {
+    function storeCommitBlockHash(uint256 gameId, string calldata _url) public isGamemaster(gameId) {
         require(games[gameId].hasCommitted, "No hash has been committed yet");
         require(!games[gameId].hasStoredBlockHash, "Block hash has already been stored");
         require(block.number >= games[gameId].commitBlockNumber, "Must wait for the commit block to be mined");
+        require(bytes(_url).length > 0, "URL cannot be empty");
         
         // Get the block hash for the commit block
         bytes32 blockHash = blockhash(games[gameId].commitBlockNumber);
         require(blockHash != bytes32(0), "Commit block hash not available (too old or invalid)");
         
-        // Store the block hash
+        // Store the block hash and URL
         games[gameId].commitBlockHash = blockHash;
+        games[gameId].url = _url;
         games[gameId].hasStoredBlockHash = true;
         
-        emit BlockHashStored(gameId, blockHash);
+        emit BlockHashStored(gameId, blockHash, _url);
     }
 
     /**
@@ -430,6 +436,14 @@ contract YourContract {
     }
 
     /**
+     * Function to get the URL for a specific game
+     */
+    function getGameUrl(uint256 gameId) public view returns (string memory) {
+        require(games[gameId].gamemaster != address(0), "Game does not exist");
+        return games[gameId].url;
+    }
+
+    /**
      * Function to get the payout information for a game
      */
     function getPayoutInfo(uint256 gameId) public view returns (
@@ -557,6 +571,9 @@ contract YourContract {
         bool hasStoredBlockHash,
         uint256 mapSize,
         
+        // Game URL
+        string memory url,
+        
         // Payout info (from getPayoutInfo)
         address[] memory winners,
         uint256 payoutAmount,
@@ -632,6 +649,9 @@ contract YourContract {
             games[gameId].hasRevealed,
             games[gameId].hasStoredBlockHash,
             games[gameId].mapSize,
+            
+            // Game URL
+            games[gameId].url,
             
             // Payout info
             games[gameId].winners,

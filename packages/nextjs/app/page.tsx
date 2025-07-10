@@ -5,13 +5,11 @@ import Image from "next/image";
 import Link from "next/link";
 import type { NextPage } from "next";
 import { formatEther } from "viem";
-import { useAccount } from "wagmi";
 import { ClientOnlyWrapper } from "~~/components/ClientOnlyWrapper";
 import { Address } from "~~/components/scaffold-eth";
 import { useScaffoldReadContract } from "~~/hooks/scaffold-eth";
 
 const GameListContent = () => {
-  const { address: connectedAddress } = useAccount();
   const [loading] = useState(false);
 
   // Read the next game ID to determine how many games exist
@@ -82,19 +80,6 @@ const GameListContent = () => {
               </div>
             )}
           </div>
-
-          {/* Connect Wallet Prompt */}
-          {!connectedAddress && (
-            <div className="bg-blue-50 dark:bg-blue-900/20 border-l-4 border-blue-400 p-6 rounded mt-8">
-              <div className="flex">
-                <div className="ml-3">
-                  <p className="text-sm text-blue-700 dark:text-blue-300">
-                    Connect your wallet to create games or join existing ones.
-                  </p>
-                </div>
-              </div>
-            </div>
-          )}
         </div>
       </div>
     </>

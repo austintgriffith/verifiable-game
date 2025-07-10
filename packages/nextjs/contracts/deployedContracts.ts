@@ -7,7 +7,7 @@ import { GenericContractsDeclaration } from "~~/utils/scaffold-eth/contract";
 const deployedContracts = {
   8453: {
     YourContract: {
-      address: "0x30079c0C1c7fC32452225f0F5000B87b2cb1110D",
+      address: "0x69fE8B885A3EF08149C1563BbeaF9F881c378D0c",
       abi: [
         {
           inputs: [],
@@ -28,6 +28,12 @@ const deployedContracts = {
               internalType: "bytes32",
               name: "blockHash",
               type: "bytes32",
+            },
+            {
+              indexed: false,
+              internalType: "string",
+              name: "url",
+              type: "string",
             },
           ],
           name: "BlockHashStored",
@@ -401,6 +407,11 @@ const deployedContracts = {
               type: "uint256",
             },
             {
+              internalType: "string",
+              name: "url",
+              type: "string",
+            },
+            {
               internalType: "uint256",
               name: "payoutAmount",
               type: "uint256",
@@ -611,6 +622,11 @@ const deployedContracts = {
               type: "uint256",
             },
             {
+              internalType: "string",
+              name: "url",
+              type: "string",
+            },
+            {
               internalType: "address[]",
               name: "winners",
               type: "address[]",
@@ -732,6 +748,25 @@ const deployedContracts = {
               internalType: "bool",
               name: "hasClosed",
               type: "bool",
+            },
+          ],
+          stateMutability: "view",
+          type: "function",
+        },
+        {
+          inputs: [
+            {
+              internalType: "uint256",
+              name: "gameId",
+              type: "uint256",
+            },
+          ],
+          name: "getGameUrl",
+          outputs: [
+            {
+              internalType: "string",
+              name: "",
+              type: "string",
             },
           ],
           stateMutability: "view",
@@ -1010,6 +1045,11 @@ const deployedContracts = {
               internalType: "uint256",
               name: "gameId",
               type: "uint256",
+            },
+            {
+              internalType: "string",
+              name: "_url",
+              type: "string",
             },
           ],
           name: "storeCommitBlockHash",
@@ -1023,7 +1063,7 @@ const deployedContracts = {
   },
   31337: {
     YourContract: {
-      address: "0xDc64a140Aa3E981100a9becA4E685f962f0cF6C9",
+      address: "0xE1F0Df1FB632D20e7912459d2F21407CdaBF1615",
       abi: [
         {
           inputs: [],
@@ -1044,6 +1084,12 @@ const deployedContracts = {
               internalType: "bytes32",
               name: "blockHash",
               type: "bytes32",
+            },
+            {
+              indexed: false,
+              internalType: "string",
+              name: "url",
+              type: "string",
             },
           ],
           name: "BlockHashStored",
@@ -1417,6 +1463,11 @@ const deployedContracts = {
               type: "uint256",
             },
             {
+              internalType: "string",
+              name: "url",
+              type: "string",
+            },
+            {
               internalType: "uint256",
               name: "payoutAmount",
               type: "uint256",
@@ -1627,6 +1678,11 @@ const deployedContracts = {
               type: "uint256",
             },
             {
+              internalType: "string",
+              name: "url",
+              type: "string",
+            },
+            {
               internalType: "address[]",
               name: "winners",
               type: "address[]",
@@ -1748,6 +1804,25 @@ const deployedContracts = {
               internalType: "bool",
               name: "hasClosed",
               type: "bool",
+            },
+          ],
+          stateMutability: "view",
+          type: "function",
+        },
+        {
+          inputs: [
+            {
+              internalType: "uint256",
+              name: "gameId",
+              type: "uint256",
+            },
+          ],
+          name: "getGameUrl",
+          outputs: [
+            {
+              internalType: "string",
+              name: "",
+              type: "string",
             },
           ],
           stateMutability: "view",
@@ -2026,6 +2101,11 @@ const deployedContracts = {
               internalType: "uint256",
               name: "gameId",
               type: "uint256",
+            },
+            {
+              internalType: "string",
+              name: "_url",
+              type: "string",
             },
           ],
           name: "storeCommitBlockHash",

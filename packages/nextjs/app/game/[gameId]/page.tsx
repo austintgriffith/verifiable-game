@@ -13,8 +13,8 @@ import { Address } from "~~/components/scaffold-eth";
 import { useDeployedContractInfo, useScaffoldReadContract, useScaffoldWriteContract } from "~~/hooks/scaffold-eth";
 import { useWatchBalance } from "~~/hooks/scaffold-eth/useWatchBalance";
 
-const API_BASE = "https://slop.computer:8000";
-//const API_BASE = "http://localhost:8000";
+const DEFAULT_API_BASE = "https://slop.computer:8000";
+//const DEFAULT_API_BASE = "http://localhost:8000";
 
 // Heavy debug flag - set to true to log all server communications
 const heavyDebug = false;
@@ -423,23 +423,34 @@ const GamePageContent = () => {
   // hasStoredBlockHash = gameState?.[14] (available but not currently used)
   const contractMapSize = gameState?.[15] as bigint | undefined;
 
+  // Game URL from comprehensive contract data
+  const gameUrl = gameState?.[16] as string | undefined;
+
+  // Get API base URL - use contract URL if available, fallback to default
+  const getApiBaseUrl = () => {
+    if (gameUrl && gameUrl.trim() !== "") {
+      return gameUrl;
+    }
+    return DEFAULT_API_BASE;
+  };
+
   // Payout state from comprehensive contract data
-  const winners = useMemo(() => (gameState?.[16] as string[] | undefined) || [], [gameState]);
-  const payoutAmount = (gameState?.[17] as bigint | undefined) || 0n;
-  const hasPaidOut = (gameState?.[18] as boolean | undefined) || false;
+  const winners = useMemo(() => (gameState?.[17] as string[] | undefined) || [], [gameState]);
+  const payoutAmount = (gameState?.[18] as bigint | undefined) || 0n;
+  const hasPaidOut = (gameState?.[19] as boolean | undefined) || false;
 
   // Abandonment state from comprehensive contract data
-  const isAbandoned = (gameState?.[19] as boolean | undefined) || false;
-  const timeUntilAbandonmentTimeout = (gameState?.[20] as bigint | undefined) || 0n;
+  const isAbandoned = (gameState?.[20] as boolean | undefined) || false;
+  const timeUntilAbandonmentTimeout = (gameState?.[21] as bigint | undefined) || 0n;
 
   // Withdrawal state from comprehensive contract data
-  // startTime = gameState?.[21] (available but not currently used)
-  // canWithdraw = gameState?.[22] (available but not currently used)
-  const canWithdrawNow = (gameState?.[23] as boolean | undefined) || false;
-  const timeUntilWithdrawal = (gameState?.[24] as bigint | undefined) || 0n;
+  // startTime = gameState?.[22] (available but not currently used)
+  // canWithdraw = gameState?.[23] (available but not currently used)
+  const canWithdrawNow = (gameState?.[24] as boolean | undefined) || false;
+  const timeUntilWithdrawal = (gameState?.[25] as bigint | undefined) || 0n;
 
   // Player-specific state from comprehensive contract data
-  const hasWithdrawn = (gameState?.[25] as boolean | undefined) || false;
+  const hasWithdrawn = (gameState?.[26] as boolean | undefined) || false;
 
   // Map size - prioritize contract data when available, fallback to calculation
   const mapSize = useMemo(() => {
@@ -540,9 +551,9 @@ const GamePageContent = () => {
     try {
       // Step 1: Get the message to sign
       console.log("📝 Step 1: Fetching register message from server...");
-      console.log("Request URL:", `${API_BASE}/register?gameId=${gameId}`);
+      console.log("Request URL:", `${getApiBaseUrl()}/register?gameId=${gameId}`);
 
-      const registerResponse = await fetch(`${API_BASE}/register?gameId=${gameId}`);
+      const registerResponse = await fetch(`${getApiBaseUrl()}/register?gameId=${gameId}`);
       console.log("Register response status:", registerResponse.status);
       console.log("Register response headers:", Object.fromEntries(registerResponse.headers.entries()));
 
@@ -576,7 +587,7 @@ const GamePageContent = () => {
       };
       console.log("Auth payload:", authPayload);
 
-      const authResponse = await fetch(`${API_BASE}/register`, {
+      const authResponse = await fetch(`${getApiBaseUrl()}/register`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -760,7 +771,7 @@ const GamePageContent = () => {
     console.log("📊 Fetching game status...");
     console.log("🎯 EXPECTED GAME ID:", gameId);
     try {
-      const statusUrl = `${API_BASE}/status?gameId=${gameId}`;
+      const statusUrl = `${getApiBaseUrl()}/status?gameId=${gameId}`;
       console.log("Request URL:", statusUrl);
 
       if (heavyDebug) {
@@ -820,7 +831,7 @@ const GamePageContent = () => {
     console.log("👥 Fetching all players...");
     console.log("🎯 EXPECTED GAME ID:", gameId);
     try {
-      const playersUrl = `${API_BASE}/players?gameId=${gameId}`;
+      const playersUrl = `${getApiBaseUrl()}/players?gameId=${gameId}`;
       console.log("Request URL:", playersUrl);
 
       if (heavyDebug) {
@@ -921,7 +932,7 @@ const GamePageContent = () => {
     setError(null);
 
     try {
-      const moveUrl = `${API_BASE}/move?gameId=${gameId}`;
+      const moveUrl = `${getApiBaseUrl()}/move?gameId=${gameId}`;
       console.log("🚀 Sending move request:", { direction, url: moveUrl });
 
       if (heavyDebug) {
@@ -1075,7 +1086,7 @@ const GamePageContent = () => {
     setError(null);
 
     try {
-      const mineUrl = `${API_BASE}/mine?gameId=${gameId}`;
+      const mineUrl = `${getApiBaseUrl()}/mine?gameId=${gameId}`;
       console.log("🚀 Sending mine request:", { url: mineUrl });
 
       if (heavyDebug) {
@@ -1219,7 +1230,7 @@ const GamePageContent = () => {
     }
 
     try {
-      const mapUrl = `${API_BASE}/map?gameId=${gameId}`;
+      const mapUrl = `${getApiBaseUrl()}/map?gameId=${gameId}`;
 
       if (heavyDebug) {
         console.log("🔥 [HEAVY DEBUG] About to fetch map from:", mapUrl);
@@ -1557,7 +1568,7 @@ const GamePageContent = () => {
           console.log("🔥 [HEAVY DEBUG] ===== TIMER UPDATE =====");
         }
 
-        const statusUrl = `${API_BASE}/status?gameId=${gameId}`;
+        const statusUrl = `${getApiBaseUrl()}/status?gameId=${gameId}`;
         const response = await fetch(statusUrl);
         const data = await response.json();
 
@@ -2448,6 +2459,14 @@ const GamePageContent = () => {
                 >
                   {open ? "Open" : "Closed"}
                 </span>
+              </div>
+              <div>
+                <p className="text-sm text-base-content/70 mb-1">Game API Endpoint</p>
+                <p className="text-sm font-mono text-blue-600 dark:text-blue-400 break-all">{getApiBaseUrl()}</p>
+                {gameUrl && gameUrl.trim() !== "" && <p className="text-xs text-base-content/50 mt-1">From contract</p>}
+                {(!gameUrl || gameUrl.trim() === "") && (
+                  <p className="text-xs text-base-content/50 mt-1">Default fallback</p>
+                )}
               </div>
               {(hasCommitted || hasRevealed) && (
                 <div>
