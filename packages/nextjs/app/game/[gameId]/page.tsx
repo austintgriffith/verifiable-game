@@ -884,7 +884,7 @@ const GamePageContent = () => {
         console.log("🔥 [HEAVY DEBUG] fetchAllPlayers error:", err);
       }
     }
-  }, [gameId]);
+  }, [gameId, getApiBaseUrl]);
 
   // Move player
   const movePlayer = async (direction: string) => {
@@ -1326,7 +1326,7 @@ const GamePageContent = () => {
         console.log("🔥 [HEAVY DEBUG] fetchPlayerMap error:", err);
       }
     }
-  }, [canPlay, jwtToken, gameId]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [canPlay, jwtToken, gameId, getApiBaseUrl]);
 
   // Helper functions
   const getTileColor = (tileType: number | string) => {
