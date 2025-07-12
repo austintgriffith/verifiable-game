@@ -1415,7 +1415,7 @@ const GamePageContent = () => {
 
       mapGenerator.generateLand();
       // TypeScript definitions are outdated - cast to any to use the correct method name
-      (mapGenerator as any).placeStartingPosition();
+      (mapGenerator as any).placeTreasure();
 
       const mapData = {
         size: mapGenerator.size,
