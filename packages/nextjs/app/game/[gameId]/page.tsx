@@ -1414,12 +1414,13 @@ const GamePageContent = () => {
       const mapGenerator = new GameLandGenerator(dice, mapSize);
 
       mapGenerator.generateLand();
-      mapGenerator.placeStartingPosition();
+      // TypeScript definitions are outdated - cast to any to use the correct method name
+      (mapGenerator as any).placeTreasure();
 
       const mapData = {
         size: mapGenerator.size,
         land: mapGenerator.land,
-        startingPosition: mapGenerator.startingPosition,
+        treasures: (mapGenerator as any).treasures,
         metadata: {
           generated: new Date().toISOString(),
           gameId: gameId,

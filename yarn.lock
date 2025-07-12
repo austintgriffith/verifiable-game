@@ -7511,6 +7511,15 @@ __metadata:
   languageName: node
   linkType: hard
 
+"deterministic-map@npm:1.0.4":
+  version: 1.0.4
+  resolution: "deterministic-map@npm:1.0.4"
+  dependencies:
+    lodash: ^4.17.21
+  checksum: 65e065967856fb9e926d39460432c1bb42cde606c61973084e0968fe239bc16d613843e4aacdeaf8178a48981a20203d7fec51ec6c78c56f068d7cb37fde403a
+  languageName: node
+  linkType: hard
+
 "diff@npm:^4.0.1":
   version: 4.0.2
   resolution: "diff@npm:4.0.2"
@@ -14825,6 +14834,7 @@ __metadata:
   version: 0.0.0-use.local
   resolution: "se-2@workspace:."
   dependencies:
+    deterministic-map: 1.0.4
     husky: ~9.1.6
     lint-staged: ~13.2.2
   languageName: unknown
