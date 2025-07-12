@@ -3452,7 +3452,7 @@ __metadata:
     blo: ~1.2.0
     burner-connector: 0.0.16
     daisyui: 5.0.9
-    deterministic-map: 1.0.3
+    deterministic-map: 1.0.4
     eslint: ~9.23.0
     eslint-config-next: ~15.2.3
     eslint-config-prettier: ~10.1.1
@@ -7499,15 +7499,6 @@ __metadata:
   version: 1.1.0
   resolution: "detect-node-es@npm:1.1.0"
   checksum: e46307d7264644975b71c104b9f028ed1d3d34b83a15b8a22373640ce5ea630e5640b1078b8ea15f202b54641da71e4aa7597093bd4b91f113db520a26a37449
-  languageName: node
-  linkType: hard
-
-"deterministic-map@npm:1.0.3":
-  version: 1.0.3
-  resolution: "deterministic-map@npm:1.0.3"
-  dependencies:
-    lodash: ^4.17.21
-  checksum: 97a2e85ad8c2fc861c80c21bd2bfedb2f18297372a40253bfb4411cb996d56a1b81561300f424561a64013d82444f8d2590e60b46a55e33f6eeaddc1173195df
   languageName: node
   linkType: hard
 
